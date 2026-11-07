@@ -2,6 +2,27 @@
 
 The user-facing title is **Grand Theft Auto: Harboursville**. Harboursville is a fictional city name laid over real Sydney geography. This is unofficial and is not affiliated with Rockstar Games or Take-Two. No official GTA logo, typeface, or cover art is included.
 
+## Rapier WASM is the physics engine, not a GTA port
+
+No complete open-world GTA game could be shipped from the public WASM projects that were checked. Each one still needs the publisher's own game files, or it is not under a licence that allows this repository to redistribute the game logic.
+
+Checked, and not vendored:
+
+- OpenRW, https://github.com/rwengine/openrw — GPL-3.0 engine, native rather than a browser build, and it does not start without a GTA III install. Linking it here would also put this whole game under GPL-3.0.
+- wasm-revc, https://github.com/origami-ltd/wasm-revc — a browser shell around reVC. The shell's own page is MIT; the game logic is the reVC decompilation, whose authors still describe it as educational, documentation, and modding use, and it streams a Vice City install. No Vice City files are in this repo.
+- OpenGTA, https://emdzej.pl/projects/opengta.html — a browser WASM reimplementation of the 1997 game that reads the player's own Windows installer at runtime. It was not downloaded.
+- reVCDOS and playgta4.com — browser wrappers that also require a copy of Vice City or GTA IV. Not downloaded.
+
+What does run in this game is Rapier, a rigid-body physics engine:
+
+- Package: `@dimforge/rapier3d-compat@0.21.0`
+- Upstream: https://github.com/dimforge/rapier
+- Copyright 2020 Dimforge EURL
+- Licence: Apache-2.0. The full text is `licenses/APACHE-2.0-rapier.txt`. The wasm and JavaScript in that package are unmodified; this game only calls them.
+- Where it runs: `src/physics.js`, loaded from `src/main.js`. The raycast vehicle drives the coupe. Four kinematic pedestrians use the character controller and walk the sampled Sydney ground. Pellets cast rays against those colliders and against the local ground. If `RAPIER.init()` or a step throws, the HUD says "Arcade fallback" and the original `stepVehicle` path keeps driving.
+
+Apache-2.0 and this repository's MIT licence can be combined. Recipients get this notice and the Apache text. Rapier is not copyleft, so the rest of the game stays MIT.
+
 ## GTA3Web was inspected and not bundled
 
 Upstream: [https://github.com/woahhcrackers/GTA3Web](https://github.com/woahhcrackers/GTA3Web)

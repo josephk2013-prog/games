@@ -8,6 +8,8 @@ This page is a low-poly browser sandbox. It is not GTA V graphics, and Three.js 
 
 The player mesh is the supplied Sean O'Shea FBX. That file has no skeleton and no embedded textures, so the game adds a generated rig and original idle, walk, run, jump, and enter-car poses. His voice is original formant synthesis, with subtitles. Talk plays it after you click. Mute and the voice slider apply. If a clip cannot decode, the browser's own stock voice is used and the subtitle says so. Cesium Man stands nearby under CC BY 4.0.
 
+The coupe, four pedestrians, and pellet hits use Rapier 0.21 compiled to WebAssembly (`@dimforge/rapier3d-compat`, Apache-2.0). That is a physics engine, not a port of a GTA game. The speedometer line reads "Rapier WASM" after it loads, or "Arcade fallback" if the module fails, in which case the original driving step is still used. The map, Sean, and the voice are unchanged. Details and the projects that were rejected are in [ATTRIBUTION.md](ATTRIBUTION.md).
+
 CGTrader Sydney models were not downloaded. Their royalty-free licence does not allow publishing the raw download in a public repository, and this environment has no CGTrader login. Listings and the required sign-in step are in [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Play
