@@ -4,7 +4,8 @@
  * It is not a GTA game port and it does not load any Rockstar data.
  *
  * Upstream: https://github.com/dimforge/rapier
- * Package: @dimforge/rapier3d-compat@0.21.0 (Apache-2.0, unmodified)
+ * Package: @dimforge/rapier3d@0.21.0 (Apache-2.0, unmodified).
+ * The physics module is the separate file rapier_wasm3d_bg.wasm, not a copy pasted into JavaScript.
  */
 
 const PATCH = 72;
@@ -12,10 +13,8 @@ const SEGMENTS = 24;
 const REBUILD_AT = 18;
 
 export async function loadRapier() {
-  const module = await import('@dimforge/rapier3d-compat');
-  const RAPIER = module.default;
-  await RAPIER.init();
-  return RAPIER;
+  const module = await import('@dimforge/rapier3d');
+  return module.default ?? module;
 }
 
 function yawFromRotation(rotation) {

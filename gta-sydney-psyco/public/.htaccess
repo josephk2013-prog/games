@@ -1,0 +1,3 @@
+# WebAssembly streaming compile asks for this media type.
+# If the host refuses streaming, the physics loader uses a buffered compile instead.
+AddType application/wasm .wasm

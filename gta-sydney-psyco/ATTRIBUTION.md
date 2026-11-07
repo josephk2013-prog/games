@@ -27,11 +27,11 @@ Checked, and not vendored:
 
 What does run in this game is Rapier, a rigid-body physics engine:
 
-- Package: `@dimforge/rapier3d-compat@0.21.0`
+- Package: `@dimforge/rapier3d@0.21.0`. Vite emits the engine as its own `.wasm` file. The JavaScript bindings stay a separate file and do not embed that binary. Node tests use `@dimforge/rapier3d-compat` only as a development tool, because Node cannot import the package's native wasm module the way the browser build can. That compat package is not part of the upload.
 - Upstream: https://github.com/dimforge/rapier
 - Copyright 2020 Dimforge EURL
 - Licence: Apache-2.0. The full text is `licenses/APACHE-2.0-rapier.txt`. The wasm and JavaScript in that package are unmodified; this game only calls them.
-- Where it runs: `src/physics.js`, loaded from `src/main.js`. The raycast vehicle drives the coupe. Four kinematic pedestrians use the character controller and walk the sampled Sydney ground. Pellets cast rays against those colliders and against the local ground. If `RAPIER.init()` or a step throws, the HUD says "Arcade fallback" and the original `stepVehicle` path keeps driving.
+- Where it runs: `src/physics.js`, loaded from `src/main.js`. The raycast vehicle drives the coupe. Four kinematic pedestrians use the character controller and walk the sampled Sydney ground. Pellets cast rays against those colliders and against the local ground. If the WebAssembly module or a step throws, the HUD says "Arcade fallback" and the original `stepVehicle` path keeps driving.
 
 Apache-2.0 and this repository's MIT licence can be combined. Recipients get this notice and the Apache text. Rapier is not copyleft, so the rest of the game stays MIT.
 
