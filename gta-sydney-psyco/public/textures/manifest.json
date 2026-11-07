@@ -1,0 +1,46 @@
+{
+  "discovery": "Textures were chosen from the ambientCG catalog (CC0). Google Images was not used as a download source: a search-result thumbnail is not a licence, and this environment did not open an authenticated Google Images session.",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceSite": "https://ambientcg.com/",
+  "sourceTerms": "https://ambientcg.com/faq",
+  "note": "ambientCG states that all assets are released under CC0. Only the Color, NormalGL, and Roughness JPEGs from the 1K-JPG zip were kept. Blend, USD, and preview files were not committed.",
+  "assets": [
+    {
+      "files": [
+        "Asphalt001_1K-JPG_Color.jpg",
+        "Asphalt001_1K-JPG_NormalGL.jpg",
+        "Asphalt001_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Road surface",
+      "page": "https://ambientcg.com/view?id=Asphalt001",
+      "download": "https://ambientcg.com/get?file=Asphalt001_1K-JPG.zip"
+    },
+    {
+      "files": [
+        "Concrete034_1K-JPG_Color.jpg",
+        "Concrete034_1K-JPG_NormalGL.jpg",
+        "Concrete034_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Taller buildings and the ground plane",
+      "page": "https://ambientcg.com/view?id=Concrete034",
+      "download": "https://ambientcg.com/get?file=Concrete034_1K-JPG.zip"
+    },
+    {
+      "files": [
+        "Bricks012_1K-JPG_Color.jpg",
+        "Bricks012_1K-JPG_NormalGL.jpg",
+        "Bricks012_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Low-rise walls",
+      "page": "https://ambientcg.com/view?id=Bricks012",
+      "download": "https://ambientcg.com/get?file=Bricks012_1K-JPG.zip"
+    },
+    {
+      "files": ["Grass004_1K-JPG_Color.jpg"],
+      "use": "Park and garden polygons",
+      "page": "https://ambientcg.com/view?id=Grass004",
+      "download": "https://ambientcg.com/get?file=Grass004_1K-JPG.zip"
+    }
+  ]
+}

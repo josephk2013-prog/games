@@ -1,5 +1,56 @@
 # Attribution and what this game does not include
 
+The user-facing title is **Grand Theft Auto: Harboursville**. Harboursville is a fictional city name laid over real Sydney geography. This is unofficial and is not affiliated with Rockstar Games or Take-Two. No official GTA logo, typeface, or cover art is included.
+
+## GTA3Web was inspected and not bundled
+
+Upstream: [https://github.com/woahhcrackers/GTA3Web](https://github.com/woahhcrackers/GTA3Web)
+
+Inspected 2026-11-07. Default branch `main`. Repository `license` is null. `GET /license` returns 404. There is no LICENSE file. README is one paragraph: "webport of gta 3/gta iii by woahhcrackers" and says it ports mods and textures from an older port.
+
+What is actually in the tree:
+
+- `index.html` boots an Emscripten module and tells the player the first load fetches about 860 MB of game assets.
+- `re3.js` is generated loader glue. It downloads `re3.data` in 20 MB parts (`re3.data.000` through `re3.data.004` are in the repo, about 100 MB together) before the engine can reach "Initialise: end".
+- `re3.wasm` is the compiled runtime.
+- `models/`, `txd/`, and `audio/` are game content directories.
+- `lazy_manifest.json` lists streamed assets.
+
+`re3` is a reverse-engineered GTA III engine. It does not run without the original game's models, textures, and audio. Those files are Rockstar / Take-Two copyrighted game assets. GTA3Web publishes them with no licence and no statement that the player must supply a legally owned copy.
+
+Nothing from that repository is copied into this project: not `re3.js`, not `re3.wasm`, not `re3.data.*`, and not the txd, model, or audio trees. Running it here would mean rehosting copyrighted GTA III assets. A legally owned PC copy of Grand Theft Auto III, plus a licence from the GTA3Web author (the repo grants none), would still be required before that runtime could be integrated. Take-Two has previously sent DMCA notices against re3 mirrors, so even engine source is not treated as reusable here.
+
+## Reference ZIP
+
+The owner attached `sydney-reference_a213.zip`. It contains one file and no path traversal entries:
+
+- `Sydney_City Skyline.dae` — Collada 1.4.1, 56,336,443 bytes uncompressed
+- Author field: `Blender User`
+- Tool: Blender 3.3.2, exported 2023-02-20
+- Three triangle meshes (`Sydney_CityPart1`, `Part2`, `Part3`), Z-up, unit metres
+- Textures are external file names `Sydney_CityPart1.jpg`, `Sydney_CityPart2.jpg`, and `Sydney_CityPart3.jpg`. Those JPEGs are not in the zip, and the DAE has no embedded images
+- No `license`, `copyright`, Creative Commons, or Sketchfab field anywhere in the file
+
+It was not added to the game. A 56 MB mesh with a generic author name and no reuse grant is not safe to redistribute, and it would not render correctly without the missing textures. It was used only as a visual reminder that the skyline should read as a harbour city, not as source geometry.
+
+## Sketchfab
+
+Official download path, from Sketchfab's public developer docs: authenticate with a Sketchfab account (OAuth 2.0), then `GET https://api.sketchfab.com/v3/models/{uid}/download` with `Authorization: Bearer <token>`. The response is a short-lived glTF zip URL. Anonymous download is rejected. A request for the Opera House model without a token returned **401 Unauthorized**. There is no Sketchfab connector in this environment, and viewer geometry was not scraped.
+
+A public search for downloadable models named "Grok Bot" returned no results. A public web search for that name on Sketchfab or X also returned nothing.
+
+These models are downloadable under CC BY 4.0 once a Sketchfab user logs in. They are **not** in this repository:
+
+| Model | Creator | Licence | URL |
+| --- | --- | --- | --- |
+| Sydney Opera House | Nick Reinhardt (`Nickardiamond`) | CC BY 4.0, commercial use with credit | https://sketchfab.com/3d-models/sydney-opera-house-317b2d540f0a4f7e8d87dd3b0372712d |
+| Sydney Harbour Bridge - Aus3DAugust2014 | ParaPup | CC BY 4.0 | https://sketchfab.com/3d-models/sydney-harbour-bridge-aus3daugust2014-513dd3d4c16b432bb36824c4174609d1 |
+| Sydney | joselitojnior | CC BY 4.0. Description credits OpenStreetMap terrain texture and Nick Reinhardt's Opera House | https://sketchfab.com/3d-models/sydney-089f16473a15452d856f6b7ae1c7b520 |
+
+To add one of them, sign in at Sketchfab, open the model, choose Download, and export glTF. Then this project can place it on the existing footprint with the CC BY credit. Until that file is supplied, the Opera House shells and bridge truss stay original stylized meshes aligned to OpenStreetMap.
+
+The harbour surface is a procedural shader on the OpenStreetMap water polygon. It is not a bathymetry survey and not a photograph of the water.
+
 ## Guns, avatars, and physics are not in the Grand-V repo
 
 Checked again on 2026-11-07.
@@ -38,7 +89,7 @@ Nothing from that repository is copied or executed here:
 - The published code is a launcher, not an engine.
 - This project does not download Rockstar or Take-Two game data.
 
-`GTA: Sydney Psyco` is an original browser sandbox. The title is the name requested for this prototype. It is not affiliated with Rockstar Games, Take-Two, or Grand-V.
+Grand Theft Auto: Harboursville is an original browser sandbox using OpenStreetMap geometry. It is not affiliated with Rockstar Games, Take-Two, Grand-V, or GTA3Web.
 
 ## Map and 3D data
 

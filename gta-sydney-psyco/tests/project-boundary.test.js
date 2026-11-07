@@ -15,16 +15,17 @@ function walk(dir, out = []) {
   return out;
 }
 
-test('the page title is exactly GTA: Sydney Psyco', () => {
+test('the page title is exactly Grand Theft Auto: Harboursville', () => {
   const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(html, /<title>GTA: Sydney Psyco<\/title>/);
-  assert.match(html, /<h1>GTA: Sydney Psyco<\/h1>/);
+  assert.match(html, /<title>Grand Theft Auto: Harboursville<\/title>/);
+  assert.match(html, /<h1>Grand Theft Auto: Harboursville<\/h1>/);
   assert.match(html, /does not run the Grand-V engine/);
+  assert.equal(html.includes('GTA: Sydney Psyco'), false);
 });
 
 test('source does not vendor Grand-V, RAGE, or a proprietary GTA runtime', () => {
   const files = walk(root.pathname);
-  const banned = ['gta-browser-' + 'launcher', 'play' + 'gta5', 'rockstar' + 'games.com', 'Launcher' + 'App'];
+  const banned = ['gta-browser-' + 'launcher', 'play' + 'gta5', 'rockstar' + 'games.com', 'Launcher' + 'App', 're3.' + 'wasm', 're3.' + 'data'];
   for (const file of files) {
     const text = readFileSync(file, 'utf8');
     for (const needle of banned) {

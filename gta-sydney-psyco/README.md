@@ -1,8 +1,10 @@
-# GTA: Sydney Psyco
+# Grand Theft Auto: Harboursville
 
-A small third-person driving sandbox around the real Sydney Harbour shoreline. It is an original browser game. It does **not** run the Grand-V engine, and it does not use Rockstar or Take-Two assets.
+An unofficial browser sandbox. The city is called Harboursville. The streets are real Sydney geography: Circular Quay and the harbour, Milsons Point on the north shore, North Ryde further north, and Redfern south of the CBD. It does **not** run Grand-V or GTA3Web, and it does not use Rockstar or Take-Two assets.
 
-The play area is Circular Quay, the Sydney Opera House, the Sydney Harbour Bridge, Milsons Point, and the north-CBD waterfront. One lap is the whole game.
+[GTA3Web](https://github.com/woahhcrackers/GTA3Web) was inspected. It is an unlicensed Emscripten build of re3 that downloads packed GTA III game data before it can start. Those assets are not in this repository. A legally owned copy of GTA III and a licence from that author would still be required to run that runtime. See [ATTRIBUTION.md](ATTRIBUTION.md).
+
+This page is a low-poly browser sandbox. It is not GTA V graphics, and Three.js cannot be shaded into that look without a separate art production. The engine choice and the missing assets are written in [GRAPHICS.md](GRAPHICS.md). GTA V models and textures are not used.
 
 ## Play
 
@@ -28,12 +30,14 @@ Preview listens on [http://localhost:4173](http://localhost:4173).
 
 ## How to play
 
-1. Read the title card. Choose **Start the Quay Loop**.
+1. Read the title card. Choose **Start in Harboursville**.
 2. You start in a red coupe at Circular Quay, facing the Opera House.
-3. Drive through the four gold rings, in order:
+3. Drive the gold rings in order. The roads between them are real OpenStreetMap centerlines. Redfern is south of the CBD, not west. North Ryde is north, along Lane Cove Road. This is a long drive at the coupe's top speed, not a teleport.
    - Opera House forecourt
    - Harbour Bridge crest
    - Milsons Point
+   - North Ryde
+   - Redfern
    - Circular Quay finish
 4. The timer stops when the last ring is taken. **Drive it again** restarts the lap.
 
@@ -56,6 +60,12 @@ Preview listens on [http://localhost:4173](http://localhost:4173).
 Driving into the harbour resets the car. Leaving the bridge deck drops it under gravity, then resets when it hits the water. Buildings block the coupe and the avatar. The bridge deck is a road in the air; streets that pass underneath stay on the ground. Orange buoys near the start are targets for the sidearm. They are not required to finish the lap.
 
 The minimap is north-up. The red arrow is you. Gold is the current ring. Orange dots are buoys.
+
+Roads use a CC0 asphalt photo. Low buildings use CC0 brick. Taller buildings and the ground use CC0 concrete. Parks use a CC0 grass photo. The list, with the exact ambientCG page and zip URL for each file, is `public/textures/manifest.json`. Google Images was not used as the file source.
+
+Harbour water is a procedural surface on the OpenStreetMap polygon: large swells, smaller chop, view-dependent sky reflection, a sun glint, and a shallow-to-deep colour toward the shore. `?water=low` reduces the ripple detail. It is not a photo of the harbour.
+
+Sketchfab models of the Opera House, the bridge, and a Sydney bay are CC BY 4.0 and downloadable only after a Sketchfab login. They are listed in [ATTRIBUTION.md](ATTRIBUTION.md) and are not bundled. The attached skyline DAE had no licence and missing textures, so it was not used as geometry.
 
 Grand-V's GitHub repository does not contain guns, avatars, or a physics engine. Both public branches are an unlicensed launcher and the releases page is empty. The avatar, sidearm, and gravity in this lap are original. They are not the RAGE engine and not GTA assets. See [ATTRIBUTION.md](ATTRIBUTION.md).
 

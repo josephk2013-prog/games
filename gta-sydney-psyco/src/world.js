@@ -50,8 +50,13 @@ function frameSamples(points, width, peak = 0) {
 
 function ribbonGeometry(samples, half, yLift = 0) {
   const positions = [];
+  const uvs = [];
   const indices = [];
-  for (const sample of samples) {
+  let along = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const sample = samples[i];
+    if (i > 0) along += Math.hypot(sample.x - samples[i - 1].x, sample.z - samples[i - 1].z);
+    const u = along / 4;
     positions.push(
       sample.x + sample.lx * half,
       sample.y + yLift,
@@ -60,6 +65,7 @@ function ribbonGeometry(samples, half, yLift = 0) {
       sample.y + yLift,
       sample.z - sample.lz * half,
     );
+    uvs.push(u, 0, u, 1);
   }
   for (let i = 0; i < samples.length - 1; i++) {
     const a = i * 2;
@@ -67,6 +73,7 @@ function ribbonGeometry(samples, half, yLift = 0) {
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   geo.setIndex(indices);
   geo.computeVertexNormals();
   return geo;
@@ -231,9 +238,24 @@ function textSprite(text) {
   return sprite;
 }
 
+function surfaceTexture(file, color) {
+  const tex = new THREE.TextureLoader().load(`${import.meta.env.BASE_URL}textures/${file}`);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.colorSpace = color ? THREE.SRGBColorSpace : THREE.NoColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+
 function buildWater(data) {
-  const bounds = data.bounds;
-  const step = 8;
+  const bounds = bboxOf(data.water || []);
+  if (!Number.isFinite(bounds.minX)) return new THREE.Mesh();
+  bounds.minX -= 24;
+  bounds.maxX += 24;
+  bounds.minZ -= 24;
+  bounds.maxZ += 24;
+  const span = Math.max(bounds.maxX - bounds.minX, bounds.maxZ - bounds.minZ);
+  const step = span > 4000 ? 14 : 8;
   const cols = Math.ceil((bounds.maxX - bounds.minX) / step);
   const rows = Math.ceil((bounds.maxZ - bounds.minZ) / step);
   const wet = new Uint8Array((cols + 1) * (rows + 1));
@@ -278,8 +300,8 @@ function buildWater(data) {
   const indices = [];
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
-      if (!wet[at(i, j)] && !wet[at(i + 1, j)] && !wet[at(i, j + 1)] && !wet[at(i + 1, j + 1)]) continue;
-      if (!wet[at(i, j)] || !wet[at(i + 1, j)] || !wet[at(i, j + 1)] || !wet[at(i + 1, j + 1)]) continue;
+      const wetCount = wet[at(i, j)] + wet[at(i + 1, j)] + wet[at(i, j + 1)] + wet[at(i + 1, j + 1)];
+      if (wetCount === 0) continue;
       const a = vid(i, j);
       const b = vid(i + 1, j);
       const c = vid(i, j + 1);
@@ -297,34 +319,39 @@ function buildWater(data) {
     glslVersion: THREE.GLSL3,
     uniforms: {
       uTime: { value: 0 },
-      uLight: { value: new THREE.Vector3(-0.65, 0.5, 0.28).normalize() },
+      uQuality: { value: 1 },
+      uSun: { value: new THREE.Vector3(-0.55, 0.62, 0.28).normalize() },
     },
     vertexShader: `
       uniform float uTime;
+      uniform float uQuality;
       in float shore;
       out float vShore;
       out vec3 vNormal;
       out vec3 vWorld;
       void main() {
         vec3 p = position;
-        float damp = 1.0 - shore * 0.9;
-        float w = damp * (
-          sin(p.x * 0.05 + uTime * 1.25) * 0.045 +
-          cos(p.z * 0.065 - uTime * 0.95) * 0.03 +
-          sin((p.x + p.z) * 0.035 + uTime * 0.55) * 0.02
-        );
+        float damp = (1.0 - shore * 0.85) * mix(0.45, 1.0, uQuality);
+        float swell = sin(p.x * 0.018 + uTime * 0.45) * 0.22
+          + sin(p.z * 0.027 - uTime * 0.33) * 0.14
+          + sin((p.x * 0.7 + p.z) * 0.05 + uTime * 0.8) * 0.06;
+        float chop = sin(p.x * 0.11 + p.z * 0.07 + uTime * 1.15) * 0.025
+          + cos(p.z * 0.16 - p.x * 0.05 - uTime * 1.4) * 0.015;
+        float w = damp * (swell + chop * uQuality);
         float dwx = damp * (
-          cos(p.x * 0.05 + uTime * 1.25) * 0.05 * 0.045 +
-          cos((p.x + p.z) * 0.035 + uTime * 0.55) * 0.035 * 0.02
+          cos(p.x * 0.018 + uTime * 0.45) * 0.018 * 0.22
+          + cos((p.x * 0.7 + p.z) * 0.05 + uTime * 0.8) * 0.035 * 0.06
+          + cos(p.x * 0.11 + p.z * 0.07 + uTime * 1.15) * 0.11 * 0.025 * uQuality
+          + sin(p.z * 0.16 - p.x * 0.05 - uTime * 1.4) * 0.05 * 0.015 * uQuality
         );
         float dwz = damp * (
-          sin(p.z * 0.065 - uTime * 0.95) * 0.065 * 0.03 +
-          cos((p.x + p.z) * 0.035 + uTime * 0.55) * 0.035 * 0.02
+          cos(p.z * 0.027 - uTime * 0.33) * 0.027 * 0.14
+          + cos((p.x * 0.7 + p.z) * 0.05 + uTime * 0.8) * 0.05 * 0.06
+          + cos(p.x * 0.11 + p.z * 0.07 + uTime * 1.15) * 0.07 * 0.025 * uQuality
+          - sin(p.z * 0.16 - p.x * 0.05 - uTime * 1.4) * 0.16 * 0.015 * uQuality
         );
         p.y += w;
-        vec3 tangent = vec3(1.0, dwx, 0.0);
-        vec3 bitangent = vec3(0.0, dwz, 1.0);
-        vNormal = normalize(cross(tangent, bitangent));
+        vNormal = normalize(cross(vec3(1.0, dwx, 0.0), vec3(0.0, dwz, 1.0)));
         vec4 world = modelMatrix * vec4(p, 1.0);
         vWorld = world.xyz;
         vShore = shore;
@@ -332,24 +359,52 @@ function buildWater(data) {
       }
     `,
     fragmentShader: `
-      uniform vec3 uLight;
+      uniform float uTime;
+      uniform float uQuality;
+      uniform vec3 uSun;
       in float vShore;
       in vec3 vNormal;
       in vec3 vWorld;
       out vec4 fragColor;
+      float ripple(vec2 p) {
+        return sin(p.x * 0.62 + uTime * 1.35) * 0.55
+          + sin(p.y * 0.71 - uTime * 1.05) * 0.45
+          + sin(dot(p, vec2(1.15, 0.62)) + uTime * 1.8) * 0.28;
+      }
       void main() {
-        vec3 n = normalize(vNormal);
+        vec2 xz = vWorld.xz;
+        float e = 0.45;
+        float h = ripple(xz);
+        float hx = ripple(xz + vec2(e, 0.0)) - h;
+        float hz = ripple(xz + vec2(0.0, e)) - h;
+        vec3 rippleN = normalize(vec3(-hx / e, 1.0, -hz / e));
+        vec3 n = normalize(mix(normalize(vNormal), rippleN, 0.55 * uQuality * (1.0 - vShore * 0.7)));
         vec3 viewDir = normalize(cameraPosition - vWorld);
-        float fres = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.6);
-        float diff = clamp(dot(n, normalize(uLight)), 0.0, 1.0);
-        vec3 deep = vec3(0.035, 0.20, 0.30);
-        vec3 shallow = vec3(0.20, 0.62, 0.68);
-        vec3 col = mix(deep, shallow, fres * 0.75 + 0.12);
-        col += diff * vec3(0.10, 0.13, 0.11);
-        float spark = pow(max(sin(vWorld.x * 0.72 + vWorld.z * 0.41) * cos(vWorld.z * 0.63 - vWorld.x * 0.2), 0.0), 16.0);
-        col += spark * vec3(0.95, 0.92, 0.78) * (1.0 - vShore);
-        col = mix(col, vec3(0.82, 0.93, 0.92), vShore * 0.65);
-        fragColor = vec4(col, 0.94);
+        vec3 sun = normalize(uSun);
+        vec3 refl = reflect(-viewDir, n);
+        float skyH = clamp(refl.y, -0.05, 1.0);
+        vec3 skyTop = vec3(0.36, 0.58, 0.86);
+        vec3 skyHor = vec3(0.73, 0.84, 0.88);
+        vec3 sky = mix(skyHor, skyTop, smoothstep(0.0, 0.55, skyH));
+        float sunDisc = pow(max(dot(refl, sun), 0.0), mix(40.0, 220.0, uQuality));
+        float sunSheen = pow(max(dot(refl, sun), 0.0), 8.0);
+        float fres = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.2);
+        float depth = smoothstep(0.0, 0.85, vShore);
+        vec3 deep = vec3(0.015, 0.11, 0.16);
+        vec3 mid = vec3(0.03, 0.28, 0.34);
+        vec3 shallow = vec3(0.25, 0.58, 0.52);
+        vec3 water = mix(deep, mid, fres * 0.35 + 0.08);
+        water = mix(water, shallow, depth);
+        float facing = clamp(dot(n, sun) * 0.5 + 0.5, 0.0, 1.0);
+        water += facing * vec3(0.02, 0.04, 0.035);
+        vec3 col = mix(water, sky, fres * mix(0.35, 0.72, 1.0 - depth));
+        col += sunSheen * vec3(0.55, 0.62, 0.58) * 0.18 * (1.0 - depth);
+        col += sunDisc * vec3(1.0, 0.96, 0.82) * (1.0 - depth * 0.85);
+        float foamBand = smoothstep(0.42, 0.92, vShore);
+        float foamMove = 0.65 + 0.35 * sin(vWorld.x * 0.08 + vWorld.z * 0.05 + uTime * 0.8);
+        col = mix(col, vec3(0.86, 0.93, 0.90), foamBand * foamMove * 0.55);
+        float alpha = mix(0.96, 0.78, depth);
+        fragColor = vec4(col, alpha);
       }
     `,
   });
@@ -357,12 +412,28 @@ function buildWater(data) {
 }
 
 function buildBuildings(data) {
-  const tex = windowTexture();
-  const material = new THREE.MeshStandardMaterial({
-    map: tex,
+  const concrete = surfaceTexture('Concrete034_1K-JPG_Color.jpg', true);
+  const concreteNormal = surfaceTexture('Concrete034_1K-JPG_NormalGL.jpg', false);
+  const concreteRough = surfaceTexture('Concrete034_1K-JPG_Roughness.jpg', false);
+  const brick = surfaceTexture('Bricks012_1K-JPG_Color.jpg', true);
+  const brickNormal = surfaceTexture('Bricks012_1K-JPG_NormalGL.jpg', false);
+  const brickRough = surfaceTexture('Bricks012_1K-JPG_Roughness.jpg', false);
+  const concreteMat = new THREE.MeshStandardMaterial({
+    map: concrete,
+    normalMap: concreteNormal,
+    roughnessMap: concreteRough,
     vertexColors: true,
-    roughness: 0.78,
-    metalness: 0.06,
+    roughness: 0.92,
+    metalness: 0.02,
+    side: THREE.DoubleSide,
+  });
+  const brickMat = new THREE.MeshStandardMaterial({
+    map: brick,
+    normalMap: brickNormal,
+    roughnessMap: brickRough,
+    vertexColors: true,
+    roughness: 0.9,
+    metalness: 0.0,
     side: THREE.DoubleSide,
   });
   const podiumMat = new THREE.MeshStandardMaterial({
@@ -371,15 +442,19 @@ function buildBuildings(data) {
     metalness: 0.02,
     side: THREE.DoubleSide,
   });
-  const chunks = [];
   const podiums = [];
-  let batch = [];
-  function flush() {
-    if (!batch.length) return;
-    const merged = mergeGeometries(batch, false);
-    batch.forEach((geo) => geo.dispose());
-    batch = [];
-    if (merged) chunks.push(merged);
+  const batches = { brick: [], concrete: [] };
+  function flush(kind) {
+    if (!batches[kind].length) return null;
+    const merged = mergeGeometries(batches[kind], false);
+    batches[kind].forEach((geo) => geo.dispose());
+    batches[kind] = [];
+    return merged;
+  }
+  const meshes = [];
+  function pushChunk(kind) {
+    const merged = flush(kind);
+    if (merged) meshes.push({ geo: merged, kind });
   }
   for (const building of data.buildings || []) {
     if (!building.polygon || building.polygon.length < 4) continue;
@@ -390,28 +465,25 @@ function buildBuildings(data) {
       if (building.kind === 'landmark') {
         podiums.push(geo);
       } else {
-        const [wall, roof] = palette(height);
-        paint(geo, wall, roof);
-        batch.push(geo);
-        if (batch.length >= 180) flush();
+        const kind = height < 22 ? 'brick' : 'concrete';
+        paint(geo, 0xffffff, kind === 'brick' ? 0xd7cfc4 : 0xc5ccd1);
+        batches[kind].push(geo);
+        if (batches[kind].length >= 160) pushChunk(kind);
       }
     } catch {
       // Skip a self-intersecting footprint rather than failing the whole city.
     }
   }
-  flush();
+  pushChunk('brick');
+  pushChunk('concrete');
   const group = new THREE.Group();
   const occluders = [];
-  if (chunks.length) {
-    const city = mergeGeometries(chunks, false);
-    chunks.forEach((geo) => geo.dispose());
-    if (city) {
-      const mesh = new THREE.Mesh(city, material);
-      mesh.castShadow = false;
-      mesh.receiveShadow = true;
-      group.add(mesh);
-      occluders.push(mesh);
-    }
+  for (const chunk of meshes) {
+    const mesh = new THREE.Mesh(chunk.geo, chunk.kind === 'brick' ? brickMat : concreteMat);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    occluders.push(mesh);
   }
   if (podiums.length) {
     const podium = mergeGeometries(podiums, false);
@@ -638,9 +710,9 @@ export async function buildWorld(scene, data, onProgress) {
         void main() {
           vec3 dir = normalize(vPos);
           float h = dir.y;
-          vec3 top = vec3(0.33, 0.56, 0.86);
-          vec3 mid = vec3(0.93, 0.62, 0.40);
-          vec3 horizon = vec3(0.99, 0.84, 0.68);
+          vec3 top = vec3(0.36, 0.58, 0.88);
+          vec3 mid = vec3(0.55, 0.74, 0.90);
+          vec3 horizon = vec3(0.78, 0.86, 0.90);
           vec3 col = mix(horizon, mid, smoothstep(0.0, 0.16, h));
           col = mix(col, top, smoothstep(0.08, 0.55, h));
           vec3 sunDir = normalize(vec3(-0.78, 0.34, 0.22));
@@ -652,29 +724,53 @@ export async function buildWorld(scene, data, onProgress) {
     }),
   );
   scene.add(sky);
-  scene.fog = new THREE.Fog(0xf3d3b2, 140, 1750);
-  scene.add(new THREE.HemisphereLight(0xc9e2ff, 0x8d7c62, 0.92));
-  const sun = new THREE.DirectionalLight(0xffc89a, 2.45);
-  sun.position.set(-220, 110, 80);
-  scene.add(sun);
-  const fill = new THREE.DirectionalLight(0x9ec4ff, 0.35);
+  scene.fog = new THREE.Fog(0xd7e4ea, 280, 6200);
+  scene.add(new THREE.HemisphereLight(0xc9e2ff, 0x6d6248, 0.72));
+  const sun = new THREE.DirectionalLight(0xfff1d6, 2.8);
+  sun.position.set(-180, 140, 60);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  sun.shadow.camera.near = 8;
+  sun.shadow.camera.far = 320;
+  sun.shadow.bias = -0.00035;
+  const shadowReach = 110;
+  sun.shadow.camera.left = -shadowReach;
+  sun.shadow.camera.right = shadowReach;
+  sun.shadow.camera.top = shadowReach;
+  sun.shadow.camera.bottom = -shadowReach;
+  scene.add(sun, sun.target);
+  const fill = new THREE.DirectionalLight(0x9ec4ff, 0.28);
   fill.position.set(160, 60, -90);
   scene.add(fill);
 
   const bounds = data.bounds;
+  const groundWidth = bounds.maxX - bounds.minX + 40;
+  const groundDepth = bounds.maxZ - bounds.minZ + 40;
+  const groundMap = surfaceTexture('Concrete034_1K-JPG_Color.jpg', true);
+  groundMap.repeat.set(groundWidth / 18, groundDepth / 18);
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(bounds.maxX - bounds.minX + 40, bounds.maxZ - bounds.minZ + 40),
-    new THREE.MeshStandardMaterial({ color: 0xcbbda8, roughness: 0.96, metalness: 0 }),
+    new THREE.PlaneGeometry(groundWidth, groundDepth),
+    new THREE.MeshStandardMaterial({ map: groundMap, color: 0xf0ebe3, roughness: 0.96, metalness: 0 }),
   );
   ground.rotation.x = -Math.PI / 2;
   ground.position.set((bounds.minX + bounds.maxX) / 2, 0, (bounds.minZ + bounds.maxZ) / 2);
   ground.receiveShadow = true;
   scene.add(ground);
 
-  const parkMat = new THREE.MeshStandardMaterial({ color: 0x6d8b49, roughness: 0.95 });
+  const grass = surfaceTexture('Grass004_1K-JPG_Color.jpg', true);
+  const parkMat = new THREE.MeshStandardMaterial({ map: grass, color: 0x8fbf62, roughness: 0.95 });
   for (const park of data.parks || []) {
     try {
-      scene.add(flatMesh(park.polygon, parkMat, 0.03));
+      const mesh = flatMesh(park.polygon, parkMat, 0.04);
+      const pos = mesh.geometry.attributes.position;
+      const uv = new Float32Array(pos.count * 2);
+      for (let i = 0; i < pos.count; i++) {
+        uv[i * 2] = pos.getX(i) / 8;
+        uv[i * 2 + 1] = pos.getZ(i) / 8;
+      }
+      mesh.geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+      mesh.receiveShadow = true;
+      scene.add(mesh);
     } catch {
       /* ignore a broken park ring */
     }
@@ -703,11 +799,14 @@ export async function buildWorld(scene, data, onProgress) {
   const water = buildWater(data);
   scene.add(water);
 
+  const asphalt = surfaceTexture('Asphalt001_1K-JPG_Color.jpg', true);
+  const asphaltNormal = surfaceTexture('Asphalt001_1K-JPG_NormalGL.jpg', false);
+  const asphaltRough = surfaceTexture('Asphalt001_1K-JPG_Roughness.jpg', false);
   const roadMat = {
-    fast: new THREE.MeshStandardMaterial({ color: 0x3e4652, roughness: 0.92, side: THREE.DoubleSide }),
-    street: new THREE.MeshStandardMaterial({ color: 0x4a5160, roughness: 0.9, side: THREE.DoubleSide }),
-    walk: new THREE.MeshStandardMaterial({ color: 0x7a7166, roughness: 0.86, side: THREE.DoubleSide }),
-    line: new THREE.MeshStandardMaterial({ color: 0xd7c36a, roughness: 0.6, side: THREE.DoubleSide }),
+    fast: new THREE.MeshStandardMaterial({ map: asphalt, normalMap: asphaltNormal, roughnessMap: asphaltRough, color: 0xb9bdc4, roughness: 1, side: THREE.DoubleSide }),
+    street: new THREE.MeshStandardMaterial({ map: asphalt, normalMap: asphaltNormal, roughnessMap: asphaltRough, color: 0xc4b8a4, roughness: 1, side: THREE.DoubleSide }),
+    walk: new THREE.MeshStandardMaterial({ map: asphalt, normalMap: asphaltNormal, roughnessMap: asphaltRough, color: 0xd9c7a4, roughness: 1, side: THREE.DoubleSide }),
+    line: new THREE.MeshStandardMaterial({ color: 0xf2f4c8, roughness: 0.6, side: THREE.DoubleSide }),
   };
   const roadBatches = { fast: [], street: [], walk: [], line: [] };
   for (const road of data.roads || []) {
@@ -723,7 +822,11 @@ export async function buildWorld(scene, data, onProgress) {
     if (!roadBatches[kind].length) continue;
     const merged = mergeGeometries(roadBatches[kind], false);
     roadBatches[kind].forEach((geo) => geo.dispose());
-    if (merged) scene.add(new THREE.Mesh(merged, roadMat[kind]));
+    if (merged) {
+      const mesh = new THREE.Mesh(merged, roadMat[kind]);
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    }
   }
 
   const pierMat = new THREE.MeshStandardMaterial({ color: 0x8d7356, roughness: 0.82 });
@@ -743,6 +846,11 @@ export async function buildWorld(scene, data, onProgress) {
   scene.add(buildBridge(data));
   const ferry = buildFerry(data);
   if (ferry) scene.add(ferry);
+  for (const district of data.districts || []) {
+    const label = textSprite(district.name);
+    label.position.set(district.x, 28, district.z);
+    scene.add(label);
+  }
 
   const markers = [];
   const ringGeo = new THREE.TorusGeometry(11, 0.42, 8, 28);
@@ -763,5 +871,5 @@ export async function buildWorld(scene, data, onProgress) {
     markers.push({ group, mesh, mat, index });
   });
 
-  return { water, occluders: buildings.occluders, markers };
+  return { water, occluders: buildings.occluders, markers, sun, sky };
 }
