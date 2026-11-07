@@ -8,6 +8,10 @@ This page is a low-poly browser sandbox. It is not GTA V graphics, and Three.js 
 
 The player mesh is the supplied Sean O'Shea FBX. That file has no skeleton and no embedded textures, so the game adds a generated rig and original idle, walk, run, jump, and enter-car poses. His voice is original formant synthesis, with subtitles. Talk plays it after you click. Mute and the voice slider apply. If a clip cannot decode, the browser's own stock voice is used and the subtitle says so. Cesium Man stands nearby under CC BY 4.0.
 
+The coupe, four pedestrians, and pellet hits use Rapier 0.21 compiled to WebAssembly (`@dimforge/rapier3d-compat`, Apache-2.0). That is a physics engine, not a port of a GTA game. The speedometer line reads "Rapier WASM" after it loads, or "Arcade fallback" if the module fails, in which case the original driving step is still used. The map, Sean, and the voice are unchanged. Details and the projects that were rejected are in [ATTRIBUTION.md](ATTRIBUTION.md).
+
+The harbour block uses CC0 facade, paving, roof, and metal photographs at metre scale, plus an original shell approximation of the Opera House and a more shaped coupe. A CC0 daylight HDRI lights reflections only. It is still not GTA V graphics and not a measured 1:1 model of the quay. `?quality=low` drops the shadow map and the harbour lamps.
+
 CGTrader Sydney models were not downloaded. Their royalty-free licence does not allow publishing the raw download in a public repository, and this environment has no CGTrader login. Listings and the required sign-in step are in [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Play

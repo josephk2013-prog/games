@@ -9,10 +9,11 @@ import { createMinimap } from './minimap.js';
 import { createMission, formatClock } from './mission.js';
 import { syntheticHarbour } from './synthetic.js';
 import { isSourcedHarbour, sourcedProblems } from './validate.js';
+import { createHarbourPhysics, loadRapier } from './physics.js';
 import { createVehicle, resetVehicle, stepVehicle } from './vehicle.js';
 import { createProjectile, projectileHits, stepProjectile } from './weapon.js';
 import { createVoice } from './voice.js';
-import { buildWorld } from './world.js';
+import { buildWorld, loadHarbourEnvironment } from './world.js';
 
 const view = document.querySelector('#view');
 const loading = document.querySelector('#loading');
@@ -58,7 +59,7 @@ const renderer = new THREE.WebGLRenderer({ canvas: view, antialias: true, powerP
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 0.92;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
@@ -187,6 +188,11 @@ async function boot() {
   const world = await buildWorld(scene, data, (text) => {
     loadingText.textContent = text;
   });
+  loadHarbourEnvironment(renderer).then((env) => {
+    scene.environment = env;
+  }).catch(() => {
+    showBanner('Daylight environment did not load. The sun light is still on.');
+  });
   if (new URLSearchParams(window.location.search).get('water') === 'low' && world.water.material?.uniforms?.uQuality) {
     world.water.material.uniforms.uQuality.value = 0.25;
   }
@@ -220,6 +226,40 @@ async function boot() {
   scene.add(car.group, car.shadow, avatar.group);
   const vehicle = createVehicle(data.mission.spawn);
   const actor = createActor(data.mission.spawn);
+  let physics = null;
+  const physicsLabel = document.querySelector('#physics-label');
+  const citizens = [];
+  function citizenMesh(color) {
+    const group = new THREE.Group();
+    const cloth = new THREE.MeshStandardMaterial({ color, roughness: 0.72 });
+    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.85, 4, 8), cloth);
+    body.position.y = 1.02;
+    body.castShadow = true;
+    const head = new THREE.Mesh(
+      new THREE.SphereGeometry(0.2, 12, 8),
+      new THREE.MeshStandardMaterial({ color: 0xd7b295, roughness: 0.62 }),
+    );
+    head.position.y = 1.68;
+    head.castShadow = true;
+    group.add(body, head);
+    return group;
+  }
+  loadRapier()
+    .then((RAPIER) => {
+      physics = createHarbourPhysics(RAPIER, collider.sample);
+      physics.attach(vehicle);
+      for (const walker of physics.walkers) {
+        const mesh = citizenMesh(walker.color);
+        scene.add(mesh);
+        citizens.push({ walker, mesh });
+      }
+      if (physicsLabel) physicsLabel.textContent = 'Rapier WASM';
+    })
+    .catch((error) => {
+      physics = null;
+      if (physicsLabel) physicsLabel.textContent = 'Arcade fallback';
+      showBanner(`Rapier WASM did not start. Arcade driving is still on. ${error.message || error}`);
+    });
   const shotGeo = new THREE.SphereGeometry(0.12, 8, 6);
   const shotMat = new THREE.MeshBasicMaterial({ color: 0xffe08a });
   const shots = [];
@@ -266,6 +306,7 @@ async function boot() {
   respawn = (reason) => {
     const point = pointForReset();
     resetVehicle(vehicle, point);
+    physics?.reset(vehicle);
     actor.x = point.x;
     actor.z = point.z;
     actor.heading = point.heading || 0;
@@ -317,6 +358,7 @@ async function boot() {
     const viewed = data.mission.checkpoints.find((cp) => cp.id === viewId);
     const start = viewed || data.mission.spawn;
     resetVehicle(vehicle, start);
+    physics?.reset(vehicle);
     actor.x = start.x;
     actor.z = start.z;
     actor.heading = start.heading || 0;
@@ -328,7 +370,9 @@ async function boot() {
       buoy.hit = false;
       buoy.mesh.visible = true;
     }
-    showBanner(viewed ? `Placed at ${viewed.name}. This is a start point, not a drive you just made.` : data.mission.checkpoints[0].name);
+    showBanner(physicsLabel?.textContent === 'Arcade fallback'
+      ? 'Rapier WASM did not start. Arcade driving is still on.'
+      : viewed ? `Placed at ${viewed.name}. This is a start point, not a drive you just made.` : data.mission.checkpoints[0].name);
     snapCamera = true;
     voice.resume().then(() => voice.say('hello', subtitle));
   }
@@ -414,9 +458,23 @@ async function boot() {
     last = now;
     if (playing && !paused && !mission.complete) {
       const input = readInput();
-      const result = mode === 'foot'
-        ? stepActor(actor, { ...input, jump: keys.has(' ') || hold.hand }, dt, collider.sample)
-        : stepVehicle(vehicle, input, dt, collider.sample);
+      let result;
+      if (mode === 'foot') {
+        result = stepActor(actor, { ...input, jump: keys.has(' ') || hold.hand }, dt, collider.sample);
+        if (physics?.ready) physics.step(vehicle, input, dt, false);
+      } else if (physics?.ready) {
+        try {
+          result = physics.step(vehicle, input, dt, true);
+        } catch (error) {
+          physics = null;
+          if (physicsLabel) physicsLabel.textContent = 'Arcade fallback';
+          showBanner(`Rapier WASM stopped. Arcade driving is still on. ${error.message || error}`);
+          result = stepVehicle(vehicle, input, dt, collider.sample);
+        }
+      } else {
+        result = stepVehicle(vehicle, input, dt, collider.sample);
+      }
+      if (result.bumped) showBanner('Pedestrian down');
       if (result.event) respawn(result.event);
       const focusHit = bodyNow();
       const hit = mission.hit(focusHit.x, focusHit.z, now);
@@ -434,10 +492,22 @@ async function boot() {
     fireCooldown = Math.max(0, fireCooldown - dt);
     for (let i = shots.length - 1; i >= 0; i--) {
       const entry = shots[i];
+      const from = { x: entry.shot.x, y: entry.shot.y, z: entry.shot.z };
       const alive = stepProjectile(entry.shot, dt);
       entry.mesh.position.set(entry.shot.x, entry.shot.y, entry.shot.z);
       let struck = false;
-      if (alive) {
+      if (alive && physics?.ready) {
+        const hit = physics.castSegment(from.x, from.y, from.z, entry.shot.x, entry.shot.y, entry.shot.z);
+        if (hit?.walker && !hit.walker.down) {
+          hit.walker.down = true;
+          struck = true;
+          showBanner('Pedestrian down');
+          audio.blip(540);
+        } else if (hit?.solid) {
+          struck = true;
+        }
+      }
+      if (alive && !struck) {
         for (const buoy of buoys) {
           if (buoy.hit) continue;
           if (projectileHits(entry.shot, buoy, 1.15)) {
@@ -465,6 +535,12 @@ async function boot() {
     if (actor.grounded) jumpSpoken = false;
     updateAvatar(avatar, actor, playing && avatar.ready && (mode === 'foot' || poseUntil > now), dt, clip);
     if (avatar.bystander) avatar.bystander.mixer.update(dt);
+    for (const citizen of citizens) {
+      const walker = citizen.walker;
+      citizen.mesh.visible = playing;
+      citizen.mesh.position.set(walker.x, walker.down ? walker.y + 0.35 : walker.y, walker.z);
+      citizen.mesh.rotation.set(0, Math.PI / 2 - walker.heading, walker.down ? 1.25 : 0);
+    }
     if (world.sun) {
       const lit = playing ? bodyNow() : { x: data.landmarks.operaHouse.centroid[0], z: data.landmarks.operaHouse.centroid[1], height: 0 };
       world.sun.target.position.set(lit.x, lit.height || 0, lit.z);

@@ -33,5 +33,5 @@ test('source does not vendor Grand-V, RAGE, or a proprietary GTA runtime', () =>
     }
   }
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.deepEqual(Object.keys(pkg.dependencies), ['three']);
+  assert.deepEqual(Object.keys(pkg.dependencies).sort(), ['@dimforge/rapier3d-compat', 'three']);
 });

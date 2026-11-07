@@ -2,6 +2,39 @@
 
 The user-facing title is **Grand Theft Auto: Harboursville**. Harboursville is a fictional city name laid over real Sydney geography. This is unofficial and is not affiliated with Rockstar Games or Take-Two. No official GTA logo, typeface, or cover art is included.
 
+## Harbour look
+
+The quay is still OpenStreetMap footprints, not a scanned city. Within about 800 m of the start, walls use CC0 facade photographs scaled so a window bay is roughly 1.5 m and a floor about 3.2 m. Taller blocks use a glass facade at about 48 m per repeat. Roofs use CC0 tiles at about 2.4 m. Kerbs and plazas use CC0 paving at about 1.6 m. Distant sheds use a plaster close-up at 2.6 m. These are generic materials, not photographs of the actual Sydney addresses.
+
+The Opera House shells and the ferry are original geometry. They are recognisable approximations, not measured models. The Harbour Bridge deck follows the OpenStreetMap centreline; the arch and pylons are original and use a CC0 steel and plaster texture.
+
+The coupe body is original geometry. Sean O'Shea's mesh is unchanged. His material is a wool-like response on that mesh, not a replacement costume and not the missing original texture maps.
+
+Daylight reflections come from Poly Haven's CC0 HDRI "Kloofendal 48d Partly Cloudy" by Greg Zaal, 2K, https://polyhaven.com/a/kloofendal_48d_partly_cloudy. It is lighting only. The visible sky is still this project's gradient. The file is `public/environment/kloofendal_48d_partly_cloudy_2k.hdr`. CC0 allows the raw file in this public repository. ambientCG files and pages are listed in `public/textures/manifest.json`.
+
+CGTrader and Sketchfab Sydney models were not added. Their downloads are not redistributable here.
+
+## Rapier WASM is the physics engine, not a GTA port
+
+No complete open-world GTA game could be shipped from the public WASM projects that were checked. Each one still needs the publisher's own game files, or it is not under a licence that allows this repository to redistribute the game logic.
+
+Checked, and not vendored:
+
+- OpenRW, https://github.com/rwengine/openrw — GPL-3.0 engine, native rather than a browser build, and it does not start without a GTA III install. Linking it here would also put this whole game under GPL-3.0.
+- wasm-revc, https://github.com/origami-ltd/wasm-revc — a browser shell around reVC. The shell's own page is MIT; the game logic is the reVC decompilation, whose authors still describe it as educational, documentation, and modding use, and it streams a Vice City install. No Vice City files are in this repo.
+- OpenGTA, https://emdzej.pl/projects/opengta.html — a browser WASM reimplementation of the 1997 game that reads the player's own Windows installer at runtime. It was not downloaded.
+- reVCDOS and playgta4.com — browser wrappers that also require a copy of Vice City or GTA IV. Not downloaded.
+
+What does run in this game is Rapier, a rigid-body physics engine:
+
+- Package: `@dimforge/rapier3d-compat@0.21.0`
+- Upstream: https://github.com/dimforge/rapier
+- Copyright 2020 Dimforge EURL
+- Licence: Apache-2.0. The full text is `licenses/APACHE-2.0-rapier.txt`. The wasm and JavaScript in that package are unmodified; this game only calls them.
+- Where it runs: `src/physics.js`, loaded from `src/main.js`. The raycast vehicle drives the coupe. Four kinematic pedestrians use the character controller and walk the sampled Sydney ground. Pellets cast rays against those colliders and against the local ground. If `RAPIER.init()` or a step throws, the HUD says "Arcade fallback" and the original `stepVehicle` path keeps driving.
+
+Apache-2.0 and this repository's MIT licence can be combined. Recipients get this notice and the Apache text. Rapier is not copyleft, so the rest of the game stays MIT.
+
 ## GTA3Web was inspected and not bundled
 
 Upstream: [https://github.com/woahhcrackers/GTA3Web](https://github.com/woahhcrackers/GTA3Web)
