@@ -13,7 +13,7 @@ import { createHarbourPhysics, loadRapier } from './physics.js';
 import { createVehicle, resetVehicle, stepVehicle } from './vehicle.js';
 import { createProjectile, projectileHits, stepProjectile } from './weapon.js';
 import { createVoice } from './voice.js';
-import { buildWorld } from './world.js';
+import { buildWorld, loadHarbourEnvironment } from './world.js';
 
 const view = document.querySelector('#view');
 const loading = document.querySelector('#loading');
@@ -59,7 +59,7 @@ const renderer = new THREE.WebGLRenderer({ canvas: view, antialias: true, powerP
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
+renderer.toneMappingExposure = 0.92;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
@@ -187,6 +187,11 @@ async function boot() {
   const collider = createCollider(data);
   const world = await buildWorld(scene, data, (text) => {
     loadingText.textContent = text;
+  });
+  loadHarbourEnvironment(renderer).then((env) => {
+    scene.environment = env;
+  }).catch(() => {
+    showBanner('Daylight environment did not load. The sun light is still on.');
   });
   if (new URLSearchParams(window.location.search).get('water') === 'low' && world.water.material?.uniforms?.uQuality) {
     world.water.material.uniforms.uQuality.value = 0.25;

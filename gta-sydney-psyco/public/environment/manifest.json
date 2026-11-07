@@ -1,0 +1,16 @@
+{
+  "license": "CC0-1.0",
+  "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceSite": "https://polyhaven.com/",
+  "note": "Used only as image-based lighting and reflections. It is not shown as the Sydney sky, and it is not a photograph of the harbour.",
+  "assets": [
+    {
+      "file": "kloofendal_48d_partly_cloudy_2k.hdr",
+      "name": "Kloofendal 48d Partly Cloudy",
+      "author": "Greg Zaal",
+      "page": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy",
+      "download": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_2k.hdr",
+      "use": "PMREM environment for the sunlit waterfront"
+    }
+  ]
+}

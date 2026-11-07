@@ -27,10 +27,13 @@ export async function attachPlayer(avatar, url) {
     if (obj.isMesh) {
       obj.castShadow = true;
       obj.frustumCulled = false;
-      obj.material = new THREE.MeshStandardMaterial({
-        color: 0x969696,
-        roughness: 0.72,
+      obj.material = new THREE.MeshPhysicalMaterial({
+        color: 0x6a6e74,
+        roughness: 0.58,
         metalness: 0.04,
+        sheen: 0.45,
+        sheenColor: new THREE.Color(0xc8ccd2),
+        sheenRoughness: 0.62,
         side: THREE.DoubleSide,
       });
     }

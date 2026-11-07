@@ -2,6 +2,18 @@
 
 The user-facing title is **Grand Theft Auto: Harboursville**. Harboursville is a fictional city name laid over real Sydney geography. This is unofficial and is not affiliated with Rockstar Games or Take-Two. No official GTA logo, typeface, or cover art is included.
 
+## Harbour look
+
+The quay is still OpenStreetMap footprints, not a scanned city. Within about 800 m of the start, walls use CC0 facade photographs scaled so a window bay is roughly 1.5 m and a floor about 3.2 m. Taller blocks use a glass facade at about 48 m per repeat. Roofs use CC0 tiles at about 2.4 m. Kerbs and plazas use CC0 paving at about 1.6 m. Distant sheds use a plaster close-up at 2.6 m. These are generic materials, not photographs of the actual Sydney addresses.
+
+The Opera House shells and the ferry are original geometry. They are recognisable approximations, not measured models. The Harbour Bridge deck follows the OpenStreetMap centreline; the arch and pylons are original and use a CC0 steel and plaster texture.
+
+The coupe body is original geometry. Sean O'Shea's mesh is unchanged. His material is a wool-like response on that mesh, not a replacement costume and not the missing original texture maps.
+
+Daylight reflections come from Poly Haven's CC0 HDRI "Kloofendal 48d Partly Cloudy" by Greg Zaal, 2K, https://polyhaven.com/a/kloofendal_48d_partly_cloudy. It is lighting only. The visible sky is still this project's gradient. The file is `public/environment/kloofendal_48d_partly_cloudy_2k.hdr`. CC0 allows the raw file in this public repository. ambientCG files and pages are listed in `public/textures/manifest.json`.
+
+CGTrader and Sketchfab Sydney models were not added. Their downloads are not redistributable here.
+
 ## Rapier WASM is the physics engine, not a GTA port
 
 No complete open-world GTA game could be shipped from the public WASM projects that were checked. Each one still needs the publisher's own game files, or it is not under a licence that allows this repository to redistribute the game logic.

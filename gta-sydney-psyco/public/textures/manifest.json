@@ -8,6 +8,67 @@
   "assets": [
     {
       "files": [
+        "Facade014_1K-JPG_Color.jpg",
+        "Facade014_1K-JPG_NormalGL.jpg",
+        "Facade014_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Harbour and city walls. One repeat is about 149 m across and 294 m tall so the photographed window bays stay near 1.5 m by 3.2 m. This is a generic apartment facade, not a survey of a Sydney street.",
+      "page": "https://ambientcg.com/view?id=Facade014",
+      "download": "https://ambientcg.com/get?file=Facade014_1K-JPG.zip"
+    },
+    {
+      "files": [
+        "Facade001_1K-JPG_Color.jpg",
+        "Facade001_1K-JPG_NormalGL.jpg",
+        "Facade001_1K-JPG_Roughness.jpg",
+        "Facade001_1K-JPG_Metalness.jpg"
+      ],
+      "use": "Taller glass buildings. One repeat is about 48 m so the mullions stay near 1.5 m.",
+      "page": "https://ambientcg.com/view?id=Facade001",
+      "download": "https://ambientcg.com/get?file=Facade001_1K-JPG.zip"
+    },
+    {
+      "files": [
+        "PavingStones092_1K-JPG_Color.jpg",
+        "PavingStones092_1K-JPG_NormalGL.jpg",
+        "PavingStones092_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Quay kerbs, plazas, and footpaths. Tiled at about 1.6 m.",
+      "page": "https://ambientcg.com/view?id=PavingStones092",
+      "download": "https://ambientcg.com/get?file=PavingStones092_1K-JPG.zip"
+    },
+    {
+      "files": [
+        "Metal032_1K-JPG_Color.jpg",
+        "Metal032_1K-JPG_NormalGL.jpg",
+        "Metal032_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Harbour Bridge steel.",
+      "page": "https://ambientcg.com/view?id=Metal032",
+      "download": "https://ambientcg.com/get?file=Metal032_1K-JPG.zip"
+    },
+    {
+      "files": [
+        "RoofingTiles009_1K-JPG_Color.jpg",
+        "RoofingTiles009_1K-JPG_NormalGL.jpg",
+        "RoofingTiles009_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Building roofs, tiled at about 2.4 m.",
+      "page": "https://ambientcg.com/view?id=RoofingTiles009",
+      "download": "https://ambientcg.com/get?file=RoofingTiles009_1K-JPG.zip"
+    },
+    {
+      "files": [
+        "Plaster001_1K-JPG_Color.jpg",
+        "Plaster001_1K-JPG_NormalGL.jpg",
+        "Plaster001_1K-JPG_Roughness.jpg"
+      ],
+      "use": "Low distant walls, bridge pylons, and the Opera House shell. The shells are an original approximation, not a measured model.",
+      "page": "https://ambientcg.com/view?id=Plaster001",
+      "download": "https://ambientcg.com/get?file=Plaster001_1K-JPG.zip"
+    },
+    {
+      "files": [
         "Asphalt001_1K-JPG_Color.jpg",
         "Asphalt001_1K-JPG_NormalGL.jpg",
         "Asphalt001_1K-JPG_Roughness.jpg"
