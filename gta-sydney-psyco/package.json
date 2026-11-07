@@ -1,0 +1,24 @@
+{
+  "name": "gta-sydney-psyco",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Unofficial Sydney Harbour driving sandbox. Original browser game. Does not run Grand-V.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "node --test \"tests/*.test.js\"",
+    "fetch-map": "node scripts/fetch-harbour.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "vite": "6.4.1"
+  },
+  "license": "MIT"
+}

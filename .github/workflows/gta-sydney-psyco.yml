@@ -1,0 +1,28 @@
+name: GTA Sydney Psyco
+
+on:
+  push:
+    paths:
+      - "gta-sydney-psyco/**"
+      - ".github/workflows/gta-sydney-psyco.yml"
+  pull_request:
+    paths:
+      - "gta-sydney-psyco/**"
+      - ".github/workflows/gta-sydney-psyco.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: gta-sydney-psyco
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: gta-sydney-psyco/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
