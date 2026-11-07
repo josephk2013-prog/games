@@ -6,6 +6,10 @@ An unofficial browser sandbox. The city is called Harboursville. The streets are
 
 This page is a low-poly browser sandbox. It is not GTA V graphics, and Three.js cannot be shaded into that look without a separate art production. The engine choice and the missing assets are written in [GRAPHICS.md](GRAPHICS.md). GTA V models and textures are not used.
 
+The player mesh is the supplied Sean O'Shea FBX. That file has no skeleton and no embedded textures, so the game adds a generated rig and original idle, walk, run, jump, and enter-car poses. His voice is original formant synthesis, with subtitles. Talk plays it after you click. Mute and the voice slider apply. If a clip cannot decode, the browser's own stock voice is used and the subtitle says so. Cesium Man stands nearby under CC BY 4.0.
+
+CGTrader Sydney models were not downloaded. Their royalty-free licence does not allow publishing the raw download in a public repository, and this environment has no CGTrader login. Listings and the required sign-in step are in [ATTRIBUTION.md](ATTRIBUTION.md).
+
 ## Play
 
 From this directory:

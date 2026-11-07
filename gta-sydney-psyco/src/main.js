@@ -1,7 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import { createActor, stepActor } from './actor.js';
-import { createAvatar, updateAvatar } from './avatar.js';
+import { attachPlayer, createAvatar, loadCharacter, placeBystander, updateAvatar } from './avatar.js';
 import { createAudio } from './audio.js';
 import { createCollider } from './collider.js';
 import { createCar, updateCar } from './car.js';
@@ -11,6 +11,7 @@ import { syntheticHarbour } from './synthetic.js';
 import { isSourcedHarbour, sourcedProblems } from './validate.js';
 import { createVehicle, resetVehicle, stepVehicle } from './vehicle.js';
 import { createProjectile, projectileHits, stepProjectile } from './weapon.js';
+import { createVoice } from './voice.js';
 import { buildWorld } from './world.js';
 
 const view = document.querySelector('#view');
@@ -47,6 +48,7 @@ let topDown = false;
 let camYaw = 0;
 let camPitch = 0.38;
 let camDist = 9;
+let snapCamera = false;
 let titleAngle = 0.4;
 let bannerUntil = 0;
 const distances = [7, 10, 14, 20];
@@ -193,9 +195,28 @@ async function boot() {
     if (child.isMesh) child.castShadow = true;
   });
   const avatar = createAvatar();
-  avatar.group.traverse((child) => {
-    if (child.isMesh) child.castShadow = true;
+  const voice = createVoice(import.meta.env.BASE_URL);
+  const subtitle = document.querySelector('#subtitle');
+  let pose = 'idle';
+  let poseUntil = 0;
+  let jumpSpoken = false;
+  attachPlayer(avatar, `${import.meta.env.BASE_URL}characters/sean-oshea.glb`).then(() => {
+    if (avatar.missingRig) showBanner('Sean O\'Shea mesh loaded without a usable generated rig.');
+  }).catch((error) => {
+    showBanner(`Sean O'Shea did not load. ${error.message || error}`);
   });
+  loadCharacter(`${import.meta.env.BASE_URL}characters/cesium-man.glb`).then((gltf) => {
+    const spawn = data.mission.spawn;
+    const heading = spawn.heading || 0;
+    const side = heading + Math.PI / 2;
+    const bystander = placeBystander(
+      gltf,
+      spawn.x + Math.cos(heading) * 0.6 + Math.cos(side) * 3.4,
+      spawn.z + Math.sin(heading) * 0.6 + Math.sin(side) * 3.4,
+    );
+    scene.add(bystander.group);
+    avatar.bystander = bystander;
+  }).catch(() => {});
   scene.add(car.group, car.shadow, avatar.group);
   const vehicle = createVehicle(data.mission.spawn);
   const actor = createActor(data.mission.spawn);
@@ -269,7 +290,14 @@ async function boot() {
   muteButton.addEventListener('click', () => {
     audio.resume();
     const muted = audio.toggleMute();
+    voice.setMuted(muted);
     muteButton.textContent = muted ? 'Sound off' : 'Sound on';
+  });
+  document.querySelector('#talk-btn').addEventListener('click', () => {
+    voice.resume().then(() => voice.say('hello', subtitle));
+  });
+  document.querySelector('#voice-volume').addEventListener('input', (event) => {
+    voice.setVolume(Number(event.target.value));
   });
   creditsToggle.addEventListener('click', () => {
     creditsBox.hidden = !creditsBox.hidden;
@@ -301,6 +329,8 @@ async function boot() {
       buoy.mesh.visible = true;
     }
     showBanner(viewed ? `Placed at ${viewed.name}. This is a start point, not a drive you just made.` : data.mission.checkpoints[0].name);
+    snapCamera = true;
+    voice.resume().then(() => voice.say('hello', subtitle));
   }
 
   function bodyNow() {
@@ -324,6 +354,8 @@ async function boot() {
       actor.speed = 0;
       actor.grounded = true;
       showBanner('On foot. J fires. F returns to the coupe.');
+      pose = 'idle';
+      voice.say('foot', subtitle);
       return;
     }
     const distance = Math.hypot(actor.x - vehicle.x, actor.z - vehicle.z);
@@ -332,7 +364,10 @@ async function boot() {
       return;
     }
     mode = 'drive';
+    pose = 'enter';
+    poseUntil = performance.now() + 1100;
     showBanner('Driving');
+    voice.say('car', subtitle);
   };
 
   requestFire = () => {
@@ -421,7 +456,15 @@ async function boot() {
       }
     }
     updateCar(car, vehicle, dt);
-    updateAvatar(avatar, actor, playing && mode === 'foot');
+    const moving = Math.abs(actor.speed) > 0.4;
+    const clip = !actor.grounded ? 'jump' : poseUntil > now ? pose : moving ? (Math.abs(actor.speed) > 4.2 ? 'run' : 'walk') : 'idle';
+    if (playing && mode === 'foot' && !actor.grounded && !jumpSpoken) {
+      jumpSpoken = true;
+      voice.say('jump', subtitle);
+    }
+    if (actor.grounded) jumpSpoken = false;
+    updateAvatar(avatar, actor, playing && avatar.ready && (mode === 'foot' || poseUntil > now), dt, clip);
+    if (avatar.bystander) avatar.bystander.mixer.update(dt);
     if (world.sun) {
       const lit = playing ? bodyNow() : { x: data.landmarks.operaHouse.centroid[0], z: data.landmarks.operaHouse.centroid[1], height: 0 };
       world.sun.target.position.set(lit.x, lit.height || 0, lit.z);
@@ -455,17 +498,20 @@ async function boot() {
       camera.position.set(focus.x, 260, focus.z + 0.1);
       camera.lookAt(focus.x, 0, focus.z);
     } else {
-      const focus = bodyNow();
+      const entering = mode === 'drive' && poseUntil > now;
+      const focus = entering ? actor : bodyNow();
       camera.up.set(0, 1, 0);
-      const ahead = mode === 'foot' ? 2.2 : 6;
+      const onFootCam = mode === 'foot' || entering;
+      const followDist = onFootCam ? 5.6 : camDist;
+      const ahead = onFootCam ? 1.35 : 6;
       look.set(
         focus.x + Math.cos(focus.heading) * ahead,
-        focus.height + (mode === 'foot' ? 1.5 : 1.6),
+        focus.height + (onFootCam ? 1.35 : 1.6),
         focus.z + Math.sin(focus.heading) * ahead,
       );
       const back = focus.heading + Math.PI + camYaw;
-      const horiz = Math.cos(camPitch) * camDist;
-      desired.set(look.x + Math.cos(back) * horiz, look.y + Math.sin(camPitch) * camDist, look.z + Math.sin(back) * horiz);
+      const horiz = Math.cos(camPitch) * followDist;
+      desired.set(look.x + Math.cos(back) * horiz, look.y + Math.sin(camPitch) * followDist, look.z + Math.sin(back) * horiz);
       if (world.occluders.length) {
         const direction = desired.clone().sub(look);
         const distance = direction.length();
@@ -482,7 +528,9 @@ async function boot() {
         }
       }
       const blend = 1 - Math.exp(-dt * 4.2);
-      camera.position.lerp(desired, blend);
+      if (snapCamera) camera.position.copy(desired);
+      else camera.position.lerp(desired, blend);
+      snapCamera = false;
       camera.lookAt(look);
     }
 

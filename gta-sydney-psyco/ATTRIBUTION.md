@@ -51,6 +51,24 @@ To add one of them, sign in at Sketchfab, open the model, choose Download, and e
 
 The harbour surface is a procedural shader on the OpenStreetMap water polygon. It is not a bathymetry survey and not a photograph of the water.
 
+## Sean O'Shea and the supporting character
+
+`public/characters/sean-oshea.fbx` is the file supplied by the repository owner (7,679,216 bytes, FBX 2018). ufbx reports one mesh, `Humano_01Business_01_30K_001`, 14,998 vertices, 30,000 triangles, one grey diffuse colour, and zero bones. The diffuse and normal JPEG paths inside the file are not embedded. `sean-oshea.glb` is that same mesh plus a generated eight-bone skin so the original idle, walk, run, jump, and enter-car poses can move it. The voice clips `sean-*.wav` are formant synthesis written for this character. They are not a recording and not a clone of a real person.
+
+Cesium Man (`cesium-man.glb`) is a bystander. Credit: Cesium, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), from the Khronos glTF sample models: https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/CesiumMan
+
+## CGTrader
+
+CGTrader's royalty-free licence allows a model inside a game only as an incorporated product, and it forbids giving away the file in the form downloaded from the site. A public git repository would publish that file, so none were committed. The developer API uses OAuth. There is no CGTrader connector here. A public search for a "Grok Bot" CGTrader workflow, including X, returned no results.
+
+Listings found, not downloaded:
+
+- Free "sidney sydney opera house" by daniel-shariatpanah, Royalty Free (no AI), OBJ and 3ds Max: https://www.cgtrader.com/free-3d-models/exterior/landmark/sidney — the page returned 403 to this environment, and a public comment says the OBJ download failed.
+- Sydney Opera House by EasyGameStudio, royalty free, about $18: https://www.cgtrader.com/3d-models/architectural/other/sydney-opera-house-0b2595b3-0c31-42ee-a43a-53d3606b0d90
+- Sydney Opera House by 3DAgentur, royalty free, hundreds of dollars: https://www.cgtrader.com/3d-models/exterior/landmark/sydney-opera-house--2
+
+To use one, the owner signs in or pays on that page, downloads it, and keeps the raw file out of this public repo (or ships it only inside a protected game package). That step was not done.
+
 ## Guns, avatars, and physics are not in the Grand-V repo
 
 Checked again on 2026-11-07.
@@ -64,7 +82,7 @@ The playable browser port associated with the Grand-V name is a reverse-engineer
 
 What you can use here instead, all original and on the Sydney map:
 
-- On-foot avatar: a generated capsule body. Press F to leave the coupe and F again beside it to drive.
+- On-foot avatar: the supplied Sean O'Shea mesh, with a generated rig because the FBX has no bones. Press F to leave the coupe and F again beside it to drive.
 - Weapon: a blocky sidearm that fires glowing pellets with their own gravity. J, a short click, or Fire. Orange buoys along the start road pop when hit.
 - Physics: the coupe and the avatar both use this project's gravity. Leaving the bridge deck drops the car; Space jumps only while you are on foot.
 

@@ -1,0 +1,53 @@
+{
+  "characters": [
+    {
+      "id": "sean-oshea",
+      "name": "Sean O'Shea",
+      "role": "player",
+      "sourceFile": "sean-oshea.fbx",
+      "runtimeFile": "sean-oshea.glb",
+      "mesh": "Humano_01Business_01_30K_001",
+      "vertices": 14998,
+      "triangles": 30000,
+      "sourceBones": 0,
+      "sourceAnimations": 0,
+      "generatedBones": ["root", "hips", "spine", "head", "armL", "armR", "legL", "legR"],
+      "texturesEmbedded": false,
+      "missingTextures": [
+        "Humano_01Business_01_Diffuse01.jpg",
+        "Humano_01Business_01_Normal.jpg"
+      ],
+      "license": "Supplied by the repository owner as their character artwork. Internal export name is Humano_01Business_01_30K.",
+      "notes": "The FBX has no skeleton and no embedded diffuse or normal maps. The glTF keeps that mesh and adds a generated skin so original idle, walk, run, jump, and car poses can move it. The grey colour is the FBX diffuse, not a replacement costume."
+    },
+    {
+      "id": "cesium-man",
+      "name": "Cesium Man",
+      "role": "bystander",
+      "runtimeFile": "cesium-man.glb",
+      "license": "CC-BY-4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+      "sourceUrl": "https://github.com/KhronosGroup/glTF-Sample-Models/tree/master/2.0/CesiumMan",
+      "credit": "Cesium Man by Cesium. Donated for glTF testing. CC BY 4.0."
+    }
+  ],
+  "voice": {
+    "id": "sean-formant",
+    "kind": "original-formant-synthesis",
+    "notARecording": true,
+    "notAClone": true,
+    "files": {
+      "hello": "sean-hello.wav",
+      "car": "sean-car.wav",
+      "foot": "sean-foot.wav",
+      "jump": "sean-jump.wav"
+    },
+    "lines": {
+      "hello": "Sean O'Shea. Harboursville quay.",
+      "car": "Back in the coupe.",
+      "foot": "On foot.",
+      "jump": "Up."
+    },
+    "fallback": "If a clip fails to decode, the Talk button can use the browser's built-in speech synthesis. That stock voice depends on the operating system and is not this character's authored sound."
+  }
+}
