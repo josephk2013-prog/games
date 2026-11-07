@@ -185,6 +185,9 @@ async function boot() {
   const world = await buildWorld(scene, data, (text) => {
     loadingText.textContent = text;
   });
+  if (new URLSearchParams(window.location.search).get('water') === 'low' && world.water.material?.uniforms?.uQuality) {
+    world.water.material.uniforms.uQuality.value = 0.25;
+  }
   const car = createCar();
   car.group.traverse((child) => {
     if (child.isMesh) child.castShadow = true;

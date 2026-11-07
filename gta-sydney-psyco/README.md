@@ -61,6 +61,10 @@ The minimap is north-up. The red arrow is you. Gold is the current ring. Orange 
 
 Roads use a CC0 asphalt photo. Low buildings use CC0 brick. Taller buildings and the ground use CC0 concrete. Parks use a CC0 grass photo. The list, with the exact ambientCG page and zip URL for each file, is `public/textures/manifest.json`. Google Images was not used as the file source.
 
+Harbour water is a procedural surface on the OpenStreetMap polygon: large swells, smaller chop, view-dependent sky reflection, a sun glint, and a shallow-to-deep colour toward the shore. `?water=low` reduces the ripple detail. It is not a photo of the harbour.
+
+Sketchfab models of the Opera House, the bridge, and a Sydney bay are CC BY 4.0 and downloadable only after a Sketchfab login. They are listed in [ATTRIBUTION.md](ATTRIBUTION.md) and are not bundled. The attached skyline DAE had no licence and missing textures, so it was not used as geometry.
+
 Grand-V's GitHub repository does not contain guns, avatars, or a physics engine. Both public branches are an unlicensed launcher and the releases page is empty. The avatar, sidearm, and gravity in this lap are original. They are not the RAGE engine and not GTA assets. See [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Checks

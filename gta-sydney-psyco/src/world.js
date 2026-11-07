@@ -300,8 +300,8 @@ function buildWater(data) {
   const indices = [];
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
-      if (!wet[at(i, j)] && !wet[at(i + 1, j)] && !wet[at(i, j + 1)] && !wet[at(i + 1, j + 1)]) continue;
-      if (!wet[at(i, j)] || !wet[at(i + 1, j)] || !wet[at(i, j + 1)] || !wet[at(i + 1, j + 1)]) continue;
+      const wetCount = wet[at(i, j)] + wet[at(i + 1, j)] + wet[at(i, j + 1)] + wet[at(i + 1, j + 1)];
+      if (wetCount === 0) continue;
       const a = vid(i, j);
       const b = vid(i + 1, j);
       const c = vid(i, j + 1);
@@ -319,34 +319,39 @@ function buildWater(data) {
     glslVersion: THREE.GLSL3,
     uniforms: {
       uTime: { value: 0 },
-      uLight: { value: new THREE.Vector3(-0.65, 0.5, 0.28).normalize() },
+      uQuality: { value: 1 },
+      uSun: { value: new THREE.Vector3(-0.55, 0.62, 0.28).normalize() },
     },
     vertexShader: `
       uniform float uTime;
+      uniform float uQuality;
       in float shore;
       out float vShore;
       out vec3 vNormal;
       out vec3 vWorld;
       void main() {
         vec3 p = position;
-        float damp = 1.0 - shore * 0.9;
-        float w = damp * (
-          sin(p.x * 0.05 + uTime * 1.25) * 0.045 +
-          cos(p.z * 0.065 - uTime * 0.95) * 0.03 +
-          sin((p.x + p.z) * 0.035 + uTime * 0.55) * 0.02
-        );
+        float damp = (1.0 - shore * 0.85) * mix(0.45, 1.0, uQuality);
+        float swell = sin(p.x * 0.018 + uTime * 0.45) * 0.22
+          + sin(p.z * 0.027 - uTime * 0.33) * 0.14
+          + sin((p.x * 0.7 + p.z) * 0.05 + uTime * 0.8) * 0.06;
+        float chop = sin(p.x * 0.11 + p.z * 0.07 + uTime * 1.15) * 0.025
+          + cos(p.z * 0.16 - p.x * 0.05 - uTime * 1.4) * 0.015;
+        float w = damp * (swell + chop * uQuality);
         float dwx = damp * (
-          cos(p.x * 0.05 + uTime * 1.25) * 0.05 * 0.045 +
-          cos((p.x + p.z) * 0.035 + uTime * 0.55) * 0.035 * 0.02
+          cos(p.x * 0.018 + uTime * 0.45) * 0.018 * 0.22
+          + cos((p.x * 0.7 + p.z) * 0.05 + uTime * 0.8) * 0.035 * 0.06
+          + cos(p.x * 0.11 + p.z * 0.07 + uTime * 1.15) * 0.11 * 0.025 * uQuality
+          + sin(p.z * 0.16 - p.x * 0.05 - uTime * 1.4) * 0.05 * 0.015 * uQuality
         );
         float dwz = damp * (
-          sin(p.z * 0.065 - uTime * 0.95) * 0.065 * 0.03 +
-          cos((p.x + p.z) * 0.035 + uTime * 0.55) * 0.035 * 0.02
+          cos(p.z * 0.027 - uTime * 0.33) * 0.027 * 0.14
+          + cos((p.x * 0.7 + p.z) * 0.05 + uTime * 0.8) * 0.05 * 0.06
+          + cos(p.x * 0.11 + p.z * 0.07 + uTime * 1.15) * 0.07 * 0.025 * uQuality
+          - sin(p.z * 0.16 - p.x * 0.05 - uTime * 1.4) * 0.16 * 0.015 * uQuality
         );
         p.y += w;
-        vec3 tangent = vec3(1.0, dwx, 0.0);
-        vec3 bitangent = vec3(0.0, dwz, 1.0);
-        vNormal = normalize(cross(tangent, bitangent));
+        vNormal = normalize(cross(vec3(1.0, dwx, 0.0), vec3(0.0, dwz, 1.0)));
         vec4 world = modelMatrix * vec4(p, 1.0);
         vWorld = world.xyz;
         vShore = shore;
@@ -354,24 +359,52 @@ function buildWater(data) {
       }
     `,
     fragmentShader: `
-      uniform vec3 uLight;
+      uniform float uTime;
+      uniform float uQuality;
+      uniform vec3 uSun;
       in float vShore;
       in vec3 vNormal;
       in vec3 vWorld;
       out vec4 fragColor;
+      float ripple(vec2 p) {
+        return sin(p.x * 0.62 + uTime * 1.35) * 0.55
+          + sin(p.y * 0.71 - uTime * 1.05) * 0.45
+          + sin(dot(p, vec2(1.15, 0.62)) + uTime * 1.8) * 0.28;
+      }
       void main() {
-        vec3 n = normalize(vNormal);
+        vec2 xz = vWorld.xz;
+        float e = 0.45;
+        float h = ripple(xz);
+        float hx = ripple(xz + vec2(e, 0.0)) - h;
+        float hz = ripple(xz + vec2(0.0, e)) - h;
+        vec3 rippleN = normalize(vec3(-hx / e, 1.0, -hz / e));
+        vec3 n = normalize(mix(normalize(vNormal), rippleN, 0.55 * uQuality * (1.0 - vShore * 0.7)));
         vec3 viewDir = normalize(cameraPosition - vWorld);
-        float fres = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 2.6);
-        float diff = clamp(dot(n, normalize(uLight)), 0.0, 1.0);
-        vec3 deep = vec3(0.035, 0.20, 0.30);
-        vec3 shallow = vec3(0.20, 0.62, 0.68);
-        vec3 col = mix(deep, shallow, fres * 0.75 + 0.12);
-        col += diff * vec3(0.10, 0.13, 0.11);
-        float spark = pow(max(sin(vWorld.x * 0.72 + vWorld.z * 0.41) * cos(vWorld.z * 0.63 - vWorld.x * 0.2), 0.0), 16.0);
-        col += spark * vec3(0.95, 0.92, 0.78) * (1.0 - vShore);
-        col = mix(col, vec3(0.82, 0.93, 0.92), vShore * 0.65);
-        fragColor = vec4(col, 0.94);
+        vec3 sun = normalize(uSun);
+        vec3 refl = reflect(-viewDir, n);
+        float skyH = clamp(refl.y, -0.05, 1.0);
+        vec3 skyTop = vec3(0.36, 0.58, 0.86);
+        vec3 skyHor = vec3(0.73, 0.84, 0.88);
+        vec3 sky = mix(skyHor, skyTop, smoothstep(0.0, 0.55, skyH));
+        float sunDisc = pow(max(dot(refl, sun), 0.0), mix(40.0, 220.0, uQuality));
+        float sunSheen = pow(max(dot(refl, sun), 0.0), 8.0);
+        float fres = pow(1.0 - clamp(dot(n, viewDir), 0.0, 1.0), 3.2);
+        float depth = smoothstep(0.0, 0.85, vShore);
+        vec3 deep = vec3(0.015, 0.11, 0.16);
+        vec3 mid = vec3(0.03, 0.28, 0.34);
+        vec3 shallow = vec3(0.25, 0.58, 0.52);
+        vec3 water = mix(deep, mid, fres * 0.35 + 0.08);
+        water = mix(water, shallow, depth);
+        float facing = clamp(dot(n, sun) * 0.5 + 0.5, 0.0, 1.0);
+        water += facing * vec3(0.02, 0.04, 0.035);
+        vec3 col = mix(water, sky, fres * mix(0.35, 0.72, 1.0 - depth));
+        col += sunSheen * vec3(0.55, 0.62, 0.58) * 0.18 * (1.0 - depth);
+        col += sunDisc * vec3(1.0, 0.96, 0.82) * (1.0 - depth * 0.85);
+        float foamBand = smoothstep(0.42, 0.92, vShore);
+        float foamMove = 0.65 + 0.35 * sin(vWorld.x * 0.08 + vWorld.z * 0.05 + uTime * 0.8);
+        col = mix(col, vec3(0.86, 0.93, 0.90), foamBand * foamMove * 0.55);
+        float alpha = mix(0.96, 0.78, depth);
+        fragColor = vec4(col, alpha);
       }
     `,
   });
