@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GTA: Sydney Psyco</title>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <div id="hud" hidden>
+      <section class="panel" id="mission">
+        <span>Quay Loop</span>
+        <strong id="objective">Opera House forecourt</strong>
+        <span id="progress">1 / 4</span>
+        <span id="clock">0:00</span>
+      </section>
+      <section class="panel" id="speedo" aria-label="Speed">
+        <div id="speed">0</div>
+        <small>km/h · <span id="mode-label">Driving</span></small>
+        <small>Buoys <span id="buoys">0 / 5</span></small>
+      </section>
+      <p class="panel" id="banner" hidden></p>
+      <section class="panel" id="controls">
+        <h2>Controls</h2>
+        <p class="keys">W / ↑ gas · S / ↓ brake and reverse · A / ← left · D / → right</p>
+        <p class="keys">Space handbrake in the car, jump on foot · F exit or enter · J or click fires</p>
+        <p class="keys">R reset · C camera · V top-down · M mute · drag to look</p>
+      </section>
+      <p id="map-credit"></p>
+      <section class="panel" id="map-card">
+        <canvas id="minimap" width="420" height="420" aria-label="Minimap"></canvas>
+      </section>
+      <div id="pedals">
+        <button type="button" data-hold="left">Left</button>
+        <button type="button" data-hold="brake">Brake</button>
+        <button type="button" data-hold="hand">Hold</button>
+        <button type="button" data-hold="throttle">Gas</button>
+        <button type="button" data-hold="right">Right</button>
+        <button type="button" id="fire-btn">Fire</button>
+        <button type="button" id="exit-btn">On foot</button>
+        <button type="button" id="reset-btn">Reset</button>
+      </div>
+    </div>
+
+    <div id="loading">
+      <div class="panel">
+        <h1>GTA: Sydney Psyco</h1>
+        <p id="loading-text">Loading the harbour chart…</p>
+      </div>
+    </div>
+
+    <div id="title" hidden>
+      <div class="panel">
+        <p class="tag">Harbour sandbox</p>
+        <h1>GTA: Sydney Psyco</h1>
+        <p class="disclaimer">An original browser game. This does not run the Grand-V engine and is not affiliated with Rockstar or Take-Two. Grand-V's GitHub repo is a launcher only: it has no guns, avatars, or physics to reuse.</p>
+        <p class="brief" id="brief"></p>
+        <p class="keys">Drive the gold rings. F steps out into an original avatar. J or Fire shoots arcing pellets at the orange buoys. Space is the handbrake in the car and a jump on foot.</p>
+        <p id="fallback" hidden></p>
+        <div class="actions">
+          <button type="button" id="start">Start the Quay Loop</button>
+          <button type="button" class="ghost" id="credits-toggle">Credits</button>
+          <button type="button" class="ghost" id="mute">Sound on</button>
+        </div>
+        <div id="credits" hidden>
+          <p>Road, water, park, pier, and building footprints are simplified OpenStreetMap data © OpenStreetMap contributors, ODbL.</p>
+          <p>The Opera House shells, Harbour Bridge arch, car, water shader, and lighting are original stylized models. Heights without an OSM tag are estimates.</p>
+          <p>No aerial photos and no photogrammetry. Three.js is MIT licensed. Grand-V was not reused. Both public branches are an unlicensed launcher with empty releases. The avatar, pellet sidearm, and gravity are original stand-ins, not RAGE or GTA assets.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="complete" hidden>
+      <div class="panel">
+        <p class="tag">Harbour loop</p>
+        <h1>GTA: Sydney Psyco</h1>
+        <p>You closed the Quay Loop in <strong id="complete-time">0:00</strong>.</p>
+        <div class="actions">
+          <button type="button" id="again">Drive it again</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pause" hidden>
+      <div class="panel">
+        <h2>Paused</h2>
+        <p class="keys">Esc resumes. R resets the car to the last checkpoint.</p>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
