@@ -20,6 +20,7 @@
         <small>Buoys <span id="buoys">0 / 5</span></small>
       </section>
       <p class="panel" id="banner" hidden></p>
+      <p class="panel" id="subtitle" hidden></p>
       <section class="panel" id="controls">
         <h2>Controls</h2>
         <p class="keys">W / ↑ gas · S / ↓ brake and reverse · A / ← left · D / → right</p>
@@ -38,6 +39,8 @@
         <button type="button" data-hold="right">Right</button>
         <button type="button" id="fire-btn">Fire</button>
         <button type="button" id="exit-btn">On foot</button>
+        <button type="button" id="talk-btn">Talk</button>
+        <label class="keys">Voice <input id="voice-volume" type="range" min="0" max="1" step="0.05" value="0.7" /></label>
         <button type="button" id="reset-btn">Reset</button>
       </div>
     </div>

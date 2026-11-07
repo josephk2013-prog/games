@@ -1,30 +1,118 @@
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const loader = new GLTFLoader();
 
 export function createAvatar() {
   const group = new THREE.Group();
-  const cloth = new THREE.MeshStandardMaterial({ color: 0x1f6f86, roughness: 0.72 });
-  const skin = new THREE.MeshStandardMaterial({ color: 0xe0b394, roughness: 0.62 });
-  const dark = new THREE.MeshStandardMaterial({ color: 0x24282e, roughness: 0.55, metalness: 0.25 });
-  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.32, 0.62, 4, 8), cloth);
-  body.position.y = 1.02;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 12), skin);
-  head.position.y = 1.68;
-  const gun = new THREE.Group();
-  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.07, 0.07), dark);
-  barrel.position.set(0.22, 0, 0);
-  const grip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.16, 0.07), dark);
-  grip.position.set(0.06, -0.1, 0);
-  gun.add(barrel, grip);
-  gun.position.set(0.12, 1.12, 0.28);
-  group.add(body, head, gun);
   group.visible = false;
-  return { group, gun };
+  return {
+    group,
+    bones: {},
+    ready: false,
+    missingRig: false,
+    clip: 'idle',
+    time: 0,
+  };
 }
 
-export function updateAvatar(avatar, actor, visible) {
-  avatar.group.visible = visible;
-  if (!visible) return;
-  const bob = Math.abs(actor.speed) > 0.45 ? Math.sin(Date.now() * 0.014) * 0.05 : 0;
-  avatar.group.position.set(actor.x, actor.height + bob, actor.z);
-  avatar.group.rotation.y = -actor.heading;
+export async function loadCharacter(url) {
+  return loader.loadAsync(url);
+}
+
+export async function attachPlayer(avatar, url) {
+  const gltf = await loadCharacter(url);
+  let skinned = null;
+  gltf.scene.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.frustumCulled = false;
+      obj.material = new THREE.MeshStandardMaterial({
+        color: 0x969696,
+        roughness: 0.72,
+        metalness: 0.04,
+        side: THREE.DoubleSide,
+      });
+    }
+    if (obj.isSkinnedMesh) skinned = obj;
+  });
+  if (!skinned || !skinned.skeleton) {
+    avatar.missingRig = true;
+    return avatar;
+  }
+  skinned.skeleton.bones.forEach((bone) => {
+    avatar.bones[bone.name] = bone;
+  });
+  const required = ['hips', 'spine', 'head', 'armL', 'armR', 'legL', 'legR'];
+  avatar.missingRig = required.some((name) => !avatar.bones[name]);
+  avatar.group.add(gltf.scene);
+  avatar.ready = !avatar.missingRig;
+  return avatar;
+}
+
+function swing(bone, x, z = 0) {
+  if (!bone) return;
+  bone.rotation.x = x;
+  bone.rotation.z = z;
+}
+
+export function updateAvatar(avatar, actor, visible, dt = 0, clip = 'idle') {
+  avatar.group.visible = Boolean(visible && avatar.ready);
+  if (!avatar.ready) return;
+  avatar.time += dt;
+  avatar.clip = clip;
+  const t = avatar.time;
+  const moving = Math.abs(actor.speed) > 0.4;
+  const run = Math.abs(actor.speed) > 4.2;
+  const freq = run ? 10 : 6.2;
+  const amp = run ? 0.85 : 0.5;
+  const step = Math.sin(t * freq);
+  for (const bone of Object.values(avatar.bones)) {
+    bone.rotation.set(0, 0, 0);
+  }
+  if (clip === 'jump' || !actor.grounded) {
+    swing(avatar.bones.legL, -0.55);
+    swing(avatar.bones.legR, -0.35);
+    swing(avatar.bones.armL, -0.8);
+    swing(avatar.bones.armR, -0.8);
+    if (avatar.bones.hips) avatar.bones.hips.rotation.x = 0.15;
+  } else if (clip === 'enter') {
+    swing(avatar.bones.legL, -1.15);
+    swing(avatar.bones.legR, -1.15);
+    swing(avatar.bones.armL, -0.4);
+    swing(avatar.bones.armR, 0.2);
+    if (avatar.bones.spine) avatar.bones.spine.rotation.x = 0.45;
+    if (avatar.bones.hips) avatar.bones.hips.position.y = 0.72;
+  } else if (moving) {
+    swing(avatar.bones.legL, step * amp);
+    swing(avatar.bones.legR, -step * amp);
+    swing(avatar.bones.armL, -step * amp * 0.75);
+    swing(avatar.bones.armR, step * amp * 0.75);
+    if (avatar.bones.spine) avatar.bones.spine.rotation.y = step * 0.08;
+  } else {
+    const idle = Math.sin(t * 1.6) * 0.04;
+    if (avatar.bones.spine) avatar.bones.spine.rotation.x = idle;
+    swing(avatar.bones.armL, 0.08 + idle);
+    swing(avatar.bones.armR, 0.08 - idle);
+  }
+  if (avatar.bones.hips && clip !== 'enter') avatar.bones.hips.position.y = 0.98;
+  avatar.group.position.set(actor.x, actor.height, actor.z);
+  // The converted mesh faces +Z. Heading 0 moves toward +X, so yaw is a quarter turn ahead of -heading.
+  avatar.group.rotation.y = Math.PI / 2 - actor.heading;
+}
+
+export function placeBystander(gltf, x, z) {
+  const group = new THREE.Group();
+  group.position.set(x, 0, z);
+  group.scale.setScalar(1.15);
+  gltf.scene.traverse((obj) => {
+    if (obj.isMesh) {
+      obj.castShadow = true;
+      obj.frustumCulled = false;
+    }
+  });
+  group.add(gltf.scene);
+  const mixer = new THREE.AnimationMixer(gltf.scene);
+  if (gltf.animations.length) mixer.clipAction(gltf.animations[0]).play();
+  return { group, mixer };
 }
