@@ -4,6 +4,8 @@ An unofficial browser sandbox. The city is called Harboursville. The streets are
 
 [GTA3Web](https://github.com/woahhcrackers/GTA3Web) was inspected. It is an unlicensed Emscripten build of re3 that downloads packed GTA III game data before it can start. Those assets are not in this repository. A legally owned copy of GTA III and a licence from that author would still be required to run that runtime. See [ATTRIBUTION.md](ATTRIBUTION.md).
 
+This page is a low-poly browser sandbox. It is not GTA V graphics, and Three.js cannot be shaded into that look without a separate art production. The engine choice and the missing assets are written in [GRAPHICS.md](GRAPHICS.md). GTA V models and textures are not used.
+
 ## Play
 
 From this directory:
