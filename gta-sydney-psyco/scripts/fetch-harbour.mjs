@@ -32,17 +32,25 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = resolve(HERE, '../public/data/harbour.json');
 const CACHE = '/tmp/gta-sydney-psyco-osm';
 
-const SOUTH = -33.869;
-const WEST = 151.195;
-const NORTH = -33.842;
-const EAST = 151.228;
+const SOUTH = -33.902;
+const WEST = 151.125;
+const NORTH = -33.78;
+const EAST = 151.23;
 const ORIGIN = { lon: (WEST + EAST) / 2, lat: (SOUTH + NORTH) / 2 };
 const BBOX = `${SOUTH},${WEST},${NORTH},${EAST}`;
+const WATER_BBOX = '-33.875,151.145,-33.8,151.23';
+const HARBOUR_CROP = { south: -33.869, west: 151.195, north: -33.842, east: 151.228 };
+const DISTRICTS = {
+  harbour: '-33.869,151.195,-33.842,151.228',
+  milsons: '-33.851,151.198,-33.836,151.222',
+  redfern: '-33.901,151.19,-33.884,151.214',
+  northRyde: '-33.808,151.125,-33.778,151.162',
+};
 
 const ENDPOINTS = [
+  'https://overpass.openstreetmap.fr/api/interpreter',
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://overpass.openstreetmap.fr/api/interpreter',
 ];
 
 const ANCHORS = {
@@ -214,41 +222,106 @@ async function main() {
     'local-water',
     `[out:json][timeout:120];
      (
-       way["natural"="water"](${BBOX});
-       way["water"](${BBOX});
-       way["natural"="coastline"](${BBOX});
-       relation["natural"="water"](${BBOX});
+       way["natural"="water"](${WATER_BBOX});
+       way["water"](${WATER_BBOX});
+       way["natural"="coastline"](${WATER_BBOX});
+       relation["natural"="water"](${WATER_BBOX});
      );
      out geom;`,
   );
-  const roadsJson = await overpass(
-    'roads',
-    `[out:json][timeout:150];
-     way["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|residential|unclassified|living_street|pedestrian|service)$"](${BBOX});
-     out geom;`,
+  const seenRoads = new Set();
+  const roadElements = [];
+  function take(json, seen, bucket) {
+    for (const el of json.elements || []) {
+      const key = `${el.type}:${el.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      bucket.push(el);
+    }
+  }
+  take(
+    await overpass(
+      'roads-major',
+      `[out:json][timeout:180];
+       way["highway"~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link)$"](${BBOX});
+       out geom;`,
+    ),
+    seenRoads,
+    roadElements,
   );
-  const buildingsJson = await overpass(
-    'buildings',
-    `[out:json][timeout:180];
-     (
-       way["building"](${BBOX});
-       relation["building"](${BBOX});
-       way["name"~"Opera House",i](${BBOX});
-       relation["name"~"Opera House",i](${BBOX});
-     );
-     out geom;`,
+  for (const [name, box] of Object.entries(DISTRICTS)) {
+    take(
+      await overpass(
+        `roads-${name}`,
+        `[out:json][timeout:120];
+         way["highway"~"^(residential|unclassified|living_street|pedestrian|service)$"](${box});
+         out geom;`,
+      ),
+      seenRoads,
+      roadElements,
+    );
+  }
+  const roadsJson = { elements: roadElements };
+  const seenBuildings = new Set();
+  const buildingElements = [];
+  for (const [name, box] of Object.entries(DISTRICTS)) {
+    const json = await overpass(
+      `buildings-${name}`,
+      `[out:json][timeout:180];
+       (
+         way["building"](${box});
+         relation["building"](${box});
+       );
+       out geom;`,
+    );
+    for (const el of json.elements || []) el._district = name;
+    take(json, seenBuildings, buildingElements);
+  }
+  take(
+    await overpass(
+      'opera-named',
+      `[out:json][timeout:60];
+       (
+         way["name"~"Opera House",i](${DISTRICTS.harbour});
+         relation["name"~"Opera House",i](${DISTRICTS.harbour});
+       );
+       out geom;`,
+    ),
+    seenBuildings,
+    buildingElements,
   );
-  const placesJson = await overpass(
-    'places',
-    `[out:json][timeout:120];
-     (
-       way["leisure"~"^(park|garden)$"](${BBOX});
-       relation["leisure"~"^(park|garden)$"](${BBOX});
-       way["man_made"="pier"](${BBOX});
-       way["man_made"="breakwater"](${BBOX});
-     );
-     out geom;`,
+  const buildingsJson = { elements: buildingElements };
+  const placeElements = [];
+  const seenPlaces = new Set();
+  for (const [name, box] of Object.entries(DISTRICTS)) {
+    take(
+      await overpass(
+        `places-${name}`,
+        `[out:json][timeout:90];
+         (
+           way["leisure"~"^(park|garden)$"](${box});
+           relation["leisure"~"^(park|garden)$"](${box});
+         );
+         out geom;`,
+      ),
+      seenPlaces,
+      placeElements,
+    );
+  }
+  take(
+    await overpass(
+      'piers',
+      `[out:json][timeout:60];
+       (
+         way["man_made"="pier"](${DISTRICTS.harbour});
+         way["man_made"="breakwater"](${DISTRICTS.harbour});
+       );
+       out geom;`,
+    ),
+    seenPlaces,
+    placeElements,
   );
+  const placesJson = { elements: placeElements };
 
   const memberWayIds = new Set();
   const water = [];
@@ -366,6 +439,7 @@ async function main() {
         height: r2(height),
         heightSource,
         kind: tags.building || 'yes',
+        district: el._district || 'harbour',
         polygon: simplified,
       });
     }
@@ -400,7 +474,14 @@ async function main() {
     .filter((b) => b.heightSource === 'estimated')
     .sort((a, b) => Math.abs(ringArea(b.polygon)) - Math.abs(ringArea(a.polygon)));
   console.log(`building candidates osm=${osmHeights.length} estimated=${estimated.length}`);
-  const limited = osmHeights.concat(estimated).slice(0, 2200);
+  const buckets = new Map();
+  for (const building of osmHeights.concat(estimated)) {
+    const key = building.district || 'harbour';
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(building);
+  }
+  const limited = [];
+  for (const list of buckets.values()) limited.push(...list.slice(0, 480));
   buildings.push(...limited);
 
   for (const part of operaParts) {
@@ -644,13 +725,13 @@ async function main() {
     return preferred[0] || { x: operaCenter[0], z: operaCenter[1] - 60 };
   }
 
-  function snapRoad(x, z, predicate) {
+  function snapRoad(x, z, predicate, maxDist = 70) {
     let best = null;
     for (const road of roads) {
       if (road.coveredByHarbourDeck) continue;
       if (predicate && !predicate(road)) continue;
       const proj = projectOntoPolyline(road.points, x, z);
-      if (!proj || proj.dist > 70) continue;
+      if (!proj || proj.dist > maxDist) continue;
       if (collider.blocked(proj.x, proj.z)) continue;
       if (collider.inWater(proj.x, proj.z)) continue;
       if (!best || proj.dist < best.dist) best = { x: proj.x, z: proj.z, dist: proj.dist, road, tx: proj.tx, tz: proj.tz };
@@ -699,10 +780,22 @@ async function main() {
     return Math.atan2(to.z - from.z, to.x - from.x);
   }
 
+  function placeDistrict(lon, lat, id, name, radius) {
+    const [x, z] = project(lon, lat, ORIGIN);
+    const arterial = (road) => /motorway|trunk|primary|secondary|tertiary|residential|unclassified/.test(road.class || '');
+    const snap = snapRoad(x, z, arterial, 160) || snapRoad(x, z, null, 220);
+    if (!snap) throw new Error(`Could not place ${id} on a road.`);
+    return { id, name, x: r2(snap.x), z: r2(snap.z), radius };
+  }
+
+  const northRydeCp = placeDistrict(151.1408, -33.7966, 'north-ryde', 'North Ryde', 42);
+  const redfernCp = placeDistrict(151.1989, -33.892, 'redfern', 'Redfern', 36);
   const checkpoints = [
     { id: 'opera', name: 'Opera House forecourt', x: operaCp.x, z: operaCp.z, radius: 28 },
     { id: 'crest', name: 'Harbour Bridge crest', x: r2(crest[0]), z: r2(crest[1]), radius: 34 },
     { id: 'milsons', name: 'Milsons Point', x: r2(milsons[0]), z: r2(milsons[1]), radius: 30 },
+    northRydeCp,
+    redfernCp,
     { id: 'quay', name: 'Circular Quay finish', x: finish.x, z: finish.z, radius: 26 },
   ];
 
@@ -722,20 +815,25 @@ async function main() {
     }
   }
 
+  const harbourMetres = boundsFromOrigin(HARBOUR_CROP.south, HARBOUR_CROP.west, HARBOUR_CROP.north, HARBOUR_CROP.east, ORIGIN);
   let wet = 0;
   let samples = 0;
   for (let ix = 0; ix < 46; ix++) {
     for (let iz = 0; iz < 40; iz++) {
-      const x = box.minX + ((ix + 0.5) / 46) * (box.maxX - box.minX);
-      const z = box.minZ + ((iz + 0.5) / 40) * (box.maxZ - box.minZ);
+      const x = harbourMetres.minX + ((ix + 0.5) / 46) * (harbourMetres.maxX - harbourMetres.minX);
+      const z = harbourMetres.minZ + ((iz + 0.5) / 40) * (harbourMetres.maxZ - harbourMetres.minZ);
       samples += 1;
       if (collider.inWater(x, z)) wet += 1;
     }
   }
   const waterFraction = wet / samples;
   if (waterFraction < 0.12 || waterFraction > 0.72) {
-    throw new Error(`Water fraction ${waterFraction.toFixed(2)} looks wrong for this harbour crop.`);
+    throw new Error(`Water fraction ${waterFraction.toFixed(2)} looks wrong for the harbour crop.`);
   }
+  const redfernProbe = landPoint(151.204, -33.893);
+  const rydeProbe = landPoint(151.141, -33.7965);
+  if (redfernProbe.water) throw new Error(`Redfern probe is water at ${JSON.stringify(redfernProbe)}`);
+  if (rydeProbe.water) throw new Error(`North Ryde probe is water at ${JSON.stringify(rydeProbe)}`);
 
   const counts = {
     waterRings: water.length,
@@ -754,7 +852,9 @@ async function main() {
   const data = {
     synthetic: false,
     meta: {
-      title: 'Sydney Harbour core',
+      title: 'Harboursville — Sydney geography',
+      city: 'Harboursville',
+      geographyNote: 'Harboursville is the fictional city name. Redfern is south of the CBD, Milsons Point is on the north shore, and North Ryde is further north along Lane Cove Road. Roads between them are real OpenStreetMap centerlines, not a teleport grid.',
       source: 'OpenStreetMap',
       license: 'ODbL-1.0',
       attribution: '© OpenStreetMap contributors',
@@ -776,10 +876,10 @@ async function main() {
         operaShells: 'original stylized shells aligned to the OSM footprint',
         estimatedBuildingHeights: 'used only where OSM has neither height nor building:levels',
       },
-      imagery: 'No aerial photography and no photogrammetry. Ground colours are procedural.',
+      imagery: 'No aerial photography and no photogrammetry in this database. Surface photographs are separate CC0 textures, not Google imagery.',
       limits: [
-        'Road, coastline, water, park, pier, and building footprints are simplified OpenStreetMap geometries for the bbox, not a full-city twin.',
-        'OpenStreetMap building footprints with height or building:levels are kept, tallest first, up to 2200. Untagged footprints are omitted instead of being given invented tower heights. If that cap is not full, leftovers get a modest deterministic estimate marked heightSource=estimated.',
+        'The playable box runs from Redfern in the south to North Ryde in the north, and from Lane Cove Road in the west to the harbour in the east. Local streets and buildings are kept inside four districts. Arterial roads connect the districts. The land between them is not filled with every terrace.',
+        'OpenStreetMap building footprints with height or building:levels are kept, tallest first, up to 480 in each district. Untagged footprints are omitted instead of being given invented tower heights. If a district cap is not full, leftovers get a modest deterministic estimate marked heightSource=estimated.',
         'The Opera House shells and Harbour Bridge arch, pylons, and deck profile are original stylized models. Only their plan position comes from OpenStreetMap.',
         'No Google photogrammetry, no Bing/Maxar imagery, and no Microsoft building-footprint dump.',
         'This file is a derived database under the Open Database License.',
@@ -797,11 +897,17 @@ async function main() {
     plazas,
     piers,
     landmarks: landmark,
+    districts: [
+      { id: 'harbour', name: 'Circular Quay', note: 'Harbour waterfront inside Harboursville.', x: spawn.x, z: spawn.z },
+      { id: 'milsons', name: 'Milsons Point', note: 'North shore, at the Harbour Bridge.', x: r2(milsons[0]), z: r2(milsons[1]) },
+      { id: 'north-ryde', name: 'North Ryde', note: 'North of the harbour, along Lane Cove Road. Not a copied grid.', x: northRydeCp.x, z: northRydeCp.z },
+      { id: 'redfern', name: 'Redfern', note: 'South of the CBD. The real suburb is south, not west.', x: redfernCp.x, z: redfernCp.z },
+    ],
     bridge,
     elevations,
     mission: {
-      title: 'Quay Loop',
-      brief: 'Drive the gold rings: Opera House forecourt, Harbour Bridge crest, Milsons Point, then back to Circular Quay.',
+      title: 'Harboursville run',
+      brief: 'Drive the gold rings in order: Opera House forecourt, Harbour Bridge crest, Milsons Point, North Ryde, Redfern, then back to Circular Quay. Redfern is south of the CBD. The roads between districts are real.',
       spawn: {
         name: 'Circular Quay',
         x: spawn.x,

@@ -27,8 +27,8 @@ test('water, Opera House, and Harbour Bridge sit on the real harbour', () => {
   assert.equal(data.water.some((ring) => pointInRing([wx, wz], ring)), true);
   const [lx, lz] = project(151.2075, -33.8662, data.origin);
   assert.equal(data.water.some((ring) => pointInRing([lx, lz], ring)), false);
-  const big = data.water.filter((ring) => Math.abs(ringArea(ring)) > 1_000_000);
-  assert.equal(big.length, 1, 'the harbour crop should be a single dominant water ring');
+  const areas = data.water.map((ring) => Math.abs(ringArea(ring))).sort((a, b) => b - a);
+  assert.ok(areas[0] > 1_000_000, 'the harbour polygon should still be a large water body');
   const center = data.landmarks.operaHouse.centroid;
   assert.ok(metresFrom(151.215297, -33.856784, center[0], center[1]) < 80);
   const crest = data.mission.checkpoints.find((cp) => cp.id === 'crest');
@@ -37,18 +37,26 @@ test('water, Opera House, and Harbour Bridge sit on the real harbour', () => {
   assert.equal(data.landmarks.operaHouse.sourced, true);
 });
 
-test('CBD roads and the Quay Loop are drivable', () => {
+test('CBD roads and the Harboursville districts are drivable', () => {
   const names = data.roads.map((road) => road.name).filter(Boolean).join(' | ');
   for (const name of ['George Street', 'Alfred Street', 'Bradfield Highway', 'Cahill Expressway']) {
     assert.match(names, new RegExp(name));
   }
+  assert.equal(data.meta.city, 'Harboursville');
+  const byId = Object.fromEntries(data.mission.checkpoints.map((cp) => [cp.id, cp]));
+  for (const id of ['opera', 'milsons', 'north-ryde', 'redfern', 'quay']) assert.ok(byId[id], id);
+  assert.ok(byId.redfern.z < byId.opera.z, 'Redfern is south of the Opera House');
+  assert.ok(byId['north-ryde'].z > byId.milsons.z, 'North Ryde is north of Milsons Point');
+  const redfernLL = data.districts.find((d) => d.id === 'redfern');
+  const rydeLL = data.districts.find((d) => d.id === 'north-ryde');
+  assert.ok(redfernLL && rydeLL);
   assert.ok(data.buildings.some((building) => building.heightSource === 'osm' && building.height > 100));
   assert.ok(data.buildings.filter((building) => building.heightSource === 'estimated').every((building) => building.height < 40));
   const collider = createCollider(data);
   const spawn = collider.sample(data.mission.spawn.x, data.mission.spawn.z);
   assert.equal(spawn.blocked, false);
   assert.equal(spawn.water, false);
-  assert.equal(data.mission.checkpoints.length, 4);
+  assert.equal(data.mission.checkpoints.length, 6);
   for (let i = 0; i < data.mission.checkpoints.length; i++) {
     const cp = data.mission.checkpoints[i];
     const sample = collider.sample(cp.x, cp.z);

@@ -57,8 +57,10 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(62, 1, 0.15, 7000);
+const camera = new THREE.PerspectiveCamera(62, 1, 0.15, 25000);
 const raycaster = new THREE.Raycaster();
 const audio = createAudio();
 
@@ -184,7 +186,13 @@ async function boot() {
     loadingText.textContent = text;
   });
   const car = createCar();
+  car.group.traverse((child) => {
+    if (child.isMesh) child.castShadow = true;
+  });
   const avatar = createAvatar();
+  avatar.group.traverse((child) => {
+    if (child.isMesh) child.castShadow = true;
+  });
   scene.add(car.group, car.shadow, avatar.group);
   const vehicle = createVehicle(data.mission.spawn);
   const actor = createActor(data.mission.spawn);
@@ -274,11 +282,14 @@ async function boot() {
     mission.complete = false;
     mission.startedAt = performance.now();
     mission.finishedAt = 0;
-    resetVehicle(vehicle, data.mission.spawn);
-    actor.x = data.mission.spawn.x;
-    actor.z = data.mission.spawn.z;
-    actor.heading = data.mission.spawn.heading || 0;
-    actor.height = 0;
+    const viewId = new URLSearchParams(window.location.search).get('view');
+    const viewed = data.mission.checkpoints.find((cp) => cp.id === viewId);
+    const start = viewed || data.mission.spawn;
+    resetVehicle(vehicle, start);
+    actor.x = start.x;
+    actor.z = start.z;
+    actor.heading = start.heading || 0;
+    actor.height = start.height || 0;
     actor.vy = 0;
     actor.speed = 0;
     mode = 'drive';
@@ -286,7 +297,7 @@ async function boot() {
       buoy.hit = false;
       buoy.mesh.visible = true;
     }
-    showBanner(data.mission.checkpoints[0].name);
+    showBanner(viewed ? `Placed at ${viewed.name}. This is a start point, not a drive you just made.` : data.mission.checkpoints[0].name);
   }
 
   function bodyNow() {
@@ -377,7 +388,7 @@ async function boot() {
           mission.finishedAt = now;
           complete.hidden = false;
           completeTime.textContent = formatClock(now - mission.startedAt);
-          showBanner('Quay Loop complete');
+          showBanner('Harboursville run complete');
         } else showBanner(mission.objective());
       }
     }
@@ -408,6 +419,13 @@ async function boot() {
     }
     updateCar(car, vehicle, dt);
     updateAvatar(avatar, actor, playing && mode === 'foot');
+    if (world.sun) {
+      const lit = playing ? bodyNow() : { x: data.landmarks.operaHouse.centroid[0], z: data.landmarks.operaHouse.centroid[1], height: 0 };
+      world.sun.target.position.set(lit.x, lit.height || 0, lit.z);
+      world.sun.position.set(lit.x - 70, (lit.height || 0) + 110, lit.z + 36);
+      world.sun.target.updateMatrixWorld();
+    }
+    if (world.sky) world.sky.position.copy(camera.position);
     audio.setSpeed(playing && !paused && mode === 'drive' ? vehicle.speed : 0);
     world.water.material.uniforms.uTime.value = now * 0.001;
 

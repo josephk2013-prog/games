@@ -34,9 +34,9 @@ html, body {
 
 h1 {
   margin: 0;
-  font-size: clamp(40px, 7vw, 76px);
-  line-height: 0.9;
-  letter-spacing: 0.04em;
+  font-size: clamp(28px, 4.4vw, 48px);
+  line-height: 0.95;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   background: linear-gradient(#fff8ea, var(--gold) 70%);
   -webkit-background-clip: text;

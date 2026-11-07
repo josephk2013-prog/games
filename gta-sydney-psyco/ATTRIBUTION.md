@@ -1,5 +1,27 @@
 # Attribution and what this game does not include
 
+The user-facing title is **Grand Theft Auto: Harboursville**. Harboursville is a fictional city name laid over real Sydney geography. This is unofficial and is not affiliated with Rockstar Games or Take-Two. No official GTA logo, typeface, or cover art is included.
+
+## GTA3Web was inspected and not bundled
+
+Upstream: [https://github.com/woahhcrackers/GTA3Web](https://github.com/woahhcrackers/GTA3Web)
+
+Inspected 2026-11-07. Default branch `main`. Repository `license` is null. `GET /license` returns 404. There is no LICENSE file. README is one paragraph: "webport of gta 3/gta iii by woahhcrackers" and says it ports mods and textures from an older port.
+
+What is actually in the tree:
+
+- `index.html` boots an Emscripten module and tells the player the first load fetches about 860 MB of game assets.
+- `re3.js` is generated loader glue. It downloads `re3.data` in 20 MB parts (`re3.data.000` through `re3.data.004` are in the repo, about 100 MB together) before the engine can reach "Initialise: end".
+- `re3.wasm` is the compiled runtime.
+- `models/`, `txd/`, and `audio/` are game content directories.
+- `lazy_manifest.json` lists streamed assets.
+
+`re3` is a reverse-engineered GTA III engine. It does not run without the original game's models, textures, and audio. Those files are Rockstar / Take-Two copyrighted game assets. GTA3Web publishes them with no licence and no statement that the player must supply a legally owned copy.
+
+Nothing from that repository is copied into this project: not `re3.js`, not `re3.wasm`, not `re3.data.*`, and not the txd, model, or audio trees. Running it here would mean rehosting copyrighted GTA III assets. A legally owned PC copy of Grand Theft Auto III, plus a licence from the GTA3Web author (the repo grants none), would still be required before that runtime could be integrated. Take-Two has previously sent DMCA notices against re3 mirrors, so even engine source is not treated as reusable here.
+
+## Guns, avatars, and physics are not in the Grand-V repo
+
 ## Guns, avatars, and physics are not in the Grand-V repo
 
 Checked again on 2026-11-07.
@@ -38,7 +60,7 @@ Nothing from that repository is copied or executed here:
 - The published code is a launcher, not an engine.
 - This project does not download Rockstar or Take-Two game data.
 
-`GTA: Sydney Psyco` is an original browser sandbox. The title is the name requested for this prototype. It is not affiliated with Rockstar Games, Take-Two, or Grand-V.
+Grand Theft Auto: Harboursville is an original browser sandbox using OpenStreetMap geometry. It is not affiliated with Rockstar Games, Take-Two, Grand-V, or GTA3Web.
 
 ## Map and 3D data
 
