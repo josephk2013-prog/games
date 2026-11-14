@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import RAPIER from '@dimforge/rapier3d-compat';
 import { createVehicle } from '../src/vehicle.js';
-import { createHarbourPhysics, loadRapier } from '../src/physics.js';
+import { createHarbourPhysics } from '../src/physics.js';
 
 const flat = () => ({ blocked: false, water: false, fall: false, out: false, height: 0, grip: 1 });
 
+await RAPIER.init();
+
 test('Rapier WASM loads and the raycast car drives, turns, and stops for a wall', async () => {
-  const RAPIER = await loadRapier();
   const open = createHarbourPhysics(RAPIER, flat);
   const vehicle = createVehicle({ x: 0, z: 0, heading: 0, height: 0 });
   open.attach(vehicle);
@@ -36,7 +38,6 @@ test('Rapier WASM loads and the raycast car drives, turns, and stops for a wall'
 });
 
 test('Rapier characters walk and a shot ray marks one down', async () => {
-  const RAPIER = await loadRapier();
   const physics = createHarbourPhysics(RAPIER, flat);
   const vehicle = createVehicle({ x: 0, z: 0, heading: 0, height: 0 });
   physics.attach(vehicle);
@@ -52,7 +53,6 @@ test('Rapier characters walk and a shot ray marks one down', async () => {
 });
 
 test('a raised harbour sample lifts the Rapier ground', async () => {
-  const RAPIER = await loadRapier();
   const physics = createHarbourPhysics(RAPIER, (x) => ({
     blocked: false,
     water: false,

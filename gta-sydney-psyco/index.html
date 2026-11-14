@@ -50,8 +50,37 @@
       <div class="panel">
         <h1>Grand Theft Auto: Harboursville</h1>
         <p id="loading-text">Loading the harbour chart…</p>
+        <p id="loading-detail" class="keys"></p>
+        <button type="button" id="loading-retry" hidden>Reload</button>
       </div>
     </div>
+    <script>
+      (function () {
+        var started = Date.now();
+        var text = document.querySelector('#loading-text');
+        var retry = document.querySelector('#loading-retry');
+        if (retry) retry.addEventListener('click', function () { location.reload(); });
+        function show(message) {
+          if (text) text.textContent = message;
+          if (retry) retry.hidden = false;
+        }
+        window.addEventListener('error', function (event) {
+          if (window.__harbourStage === 'ready') return;
+          show('The page script failed. ' + (event.message || 'Unknown error') + ' Look in the browser network list for a failed script, .wasm, harbour.json, .glb, or .hdr, then reload.');
+        });
+        window.setInterval(function () {
+          if (window.__harbourStage === 'ready') return;
+          if (!window.__harbourStage && Date.now() - started > 15000) {
+            show('The page script has not started. On a static host, upload the built folder so index.html sits beside assets, data, characters, textures, and environment. In the browser network list, the module script should not be red.');
+            return;
+          }
+          var beat = window.__harbourBeatAt || started;
+          if (window.__harbourStage && Date.now() - beat > 90000) {
+            show('No progress for 90 seconds (' + window.__harbourStage + '). In the browser network list, check the script, the .wasm physics file, data/harbour.json, characters/sean-oshea.glb, and the .hdr light. Then reload.');
+          }
+        }, 1000);
+      })();
+    </script>
 
     <div id="title" hidden>
       <div class="panel">

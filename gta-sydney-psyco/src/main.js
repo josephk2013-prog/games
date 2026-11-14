@@ -15,6 +15,26 @@ import { createProjectile, projectileHits, stepProjectile } from './weapon.js';
 import { createVoice } from './voice.js';
 import { buildWorld, loadHarbourEnvironment } from './world.js';
 
+window.__harbourBeatAt = Date.now();
+window.__harbourStage = 'script';
+function beat(stage) {
+  window.__harbourStage = stage;
+  window.__harbourBeatAt = Date.now();
+}
+
+function withTimeout(promise, ms, label) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`${label} did not finish within ${Math.round(ms / 1000)}s`)), ms);
+    promise.then((value) => {
+      clearTimeout(timer);
+      resolve(value);
+    }, (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
 const view = document.querySelector('#view');
 const loading = document.querySelector('#loading');
 const loadingText = document.querySelector('#loading-text');
@@ -164,8 +184,12 @@ async function loadHarbour() {
     return { data: syntheticHarbour(), fallback: true, reason: 'synthetic preview requested' };
   }
   try {
-    const response = await fetch(`${import.meta.env.BASE_URL}data/harbour.json`);
-    if (!response.ok) throw new Error(`map request failed (${response.status})`);
+    const response = await withTimeout(
+      fetch(`${import.meta.env.BASE_URL}data/harbour.json`),
+      45000,
+      `Map file ${import.meta.env.BASE_URL}data/harbour.json`,
+    );
+    if (!response.ok) throw new Error(`map request failed (${response.status}) for ${import.meta.env.BASE_URL}data/harbour.json`);
     const data = await response.json();
     if (!isSourcedHarbour(data)) throw new Error(sourcedProblems(data).join('; '));
     return { data, fallback: false, reason: '' };
@@ -181,17 +205,19 @@ async function boot() {
   bindHolds();
   loading.hidden = false;
   loadingText.textContent = 'Loading the harbour chart…';
+  beat('harbour chart');
   const loaded = await loadHarbour();
   const data = loaded.data;
   loadingText.textContent = 'Building collision…';
   const collider = createCollider(data);
   const world = await buildWorld(scene, data, (text) => {
     loadingText.textContent = text;
+    beat(text);
   });
-  loadHarbourEnvironment(renderer).then((env) => {
+  withTimeout(loadHarbourEnvironment(renderer), 30000, 'Daylight environment').then((env) => {
     scene.environment = env;
-  }).catch(() => {
-    showBanner('Daylight environment did not load. The sun light is still on.');
+  }).catch((error) => {
+    showBanner(`Daylight environment did not load. The sun light is still on. ${error.message || error}`);
   });
   if (new URLSearchParams(window.location.search).get('water') === 'low' && world.water.material?.uniforms?.uQuality) {
     world.water.material.uniforms.uQuality.value = 0.25;
@@ -244,7 +270,7 @@ async function boot() {
     group.add(body, head);
     return group;
   }
-  loadRapier()
+  withTimeout(loadRapier(), 30000, 'Rapier physics file')
     .then((RAPIER) => {
       physics = createHarbourPhysics(RAPIER, collider.sample);
       physics.attach(vehicle);
@@ -448,6 +474,9 @@ async function boot() {
   againButton.addEventListener('click', begin);
   loading.hidden = true;
   title.hidden = false;
+  const retry = document.querySelector('#loading-retry');
+  if (retry) retry.hidden = true;
+  beat('ready');
 
   const look = new THREE.Vector3();
   const desired = new THREE.Vector3();
